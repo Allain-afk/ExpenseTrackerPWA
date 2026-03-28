@@ -17,6 +17,7 @@ dev-dist
 .vscode/*
 !.vscode/extensions.json
 .idea
+.vercel
 .DS_Store
 *.suo
 *.ntvs*
