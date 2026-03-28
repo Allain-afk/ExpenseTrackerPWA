@@ -1,0 +1,73 @@
+.screen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 44%, #1e3a8a 100%);
+  color: white;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.content {
+  width: min(32rem, 100%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.iconWrap {
+  width: 8rem;
+  height: 8rem;
+  padding: 1rem;
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.28);
+  animation: floatIn 900ms ease-out forwards;
+}
+
+.title {
+  margin: 2rem 0 0;
+  font-size: clamp(2.2rem, 6vw, 3rem);
+  letter-spacing: -0.08em;
+}
+
+.subtitle {
+  margin: 0.7rem 0 0;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.loader {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.22);
+  border-top-color: white;
+  margin-top: 2.2rem;
+  animation: spin 900ms linear infinite;
+}
+
+.errorCard {
+  margin-top: 1.4rem;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1.35rem;
+  padding: 1rem;
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-8deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

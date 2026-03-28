@@ -1,0 +1,38 @@
+.versionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.versionItem {
+  border: 1px solid rgba(217, 227, 240, 0.9);
+  border-radius: 1rem;
+  background: white;
+  overflow: hidden;
+}
+
+.versionSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.versionSummary h3,
+.versionSummary p {
+  margin: 0;
+}
+
+.versionContent {
+  padding: 0 1rem 1rem;
+  color: var(--color-text-secondary);
+  white-space: pre-line;
+}
+
+.statusWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}

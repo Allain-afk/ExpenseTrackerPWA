@@ -1,0 +1,20 @@
+.summaryCard {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  color: white;
+}
+
+.summaryCard h2,
+.summaryCard p {
+  margin: 0;
+}
+
+.walletList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.walletCard {
+  padding: 1rem;
+}

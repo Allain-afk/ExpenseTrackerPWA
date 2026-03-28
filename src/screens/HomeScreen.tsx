@@ -1,0 +1,349 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  MdAccountBalanceWallet,
+  MdAddCard,
+  MdArrowOutward,
+  MdAttachMoney,
+  MdCreditCard,
+  MdFolder,
+  MdRefresh,
+} from 'react-icons/md';
+import { useTransactions } from '../hooks/useTransactions';
+import { useExpenseGroups } from '../hooks/useExpenseGroups';
+import { useWallets } from '../hooks/useWallets';
+import { useSettings } from '../hooks/useSettings';
+import { numberToColorHex } from '../lib/utils/format';
+import { formatMoney, formatTransactionCount } from '../lib/utils/format';
+import { formatShortDate } from '../lib/utils/date';
+import { walletColors } from '../lib/constants/settings';
+import { SectionList } from '../components/common/SectionList';
+import { Modal } from '../components/common/Modal';
+import styles from './HomeScreen.module.css';
+
+interface HomeScreenProps {
+  currencySymbol: string;
+}
+
+function gradientForColor(colorValue: number): string {
+  const base = numberToColorHex(colorValue);
+  return `linear-gradient(135deg, ${base} 0%, rgba(255,255,255,0.18) 180%)`;
+}
+
+export function HomeScreen({ currencySymbol }: HomeScreenProps) {
+  const navigate = useNavigate();
+  const transactions = useTransactions();
+  const groups = useExpenseGroups();
+  const wallets = useWallets();
+  const settings = useSettings();
+
+  const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
+  const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
+  const [mainWalletNameDraft, setMainWalletNameDraft] = useState(settings.mainWalletName);
+  const [mainWalletColorDraft, setMainWalletColorDraft] = useState(settings.mainWalletColor);
+
+  const totalWalletBalance = wallets.wallets.reduce((sum, wallet) => {
+    return sum + transactions.getWalletBalance(wallet.id!);
+  }, 0);
+
+  const mainWalletBalance =
+    wallets.wallets.length === 0 ? transactions.balance : totalWalletBalance;
+
+  const selectedWallet = selectedWalletId
+    ? wallets.getWalletById(selectedWalletId)
+    : undefined;
+
+  const topGroups = groups.groups.slice(0, 3);
+  const recentTransactions = transactions.transactions.slice(0, 5);
+
+  async function refreshHome(): Promise<void> {
+    await Promise.all([
+      transactions.loadTransactions(),
+      groups.loadExpenseGroups(),
+      wallets.loadWallets(),
+    ]);
+  }
+
+  function openMainWalletEditor() {
+    setMainWalletNameDraft(settings.mainWalletName);
+    setMainWalletColorDraft(settings.mainWalletColor);
+    setIsMainWalletOpen(true);
+  }
+
+  return (
+    <main className="app-page">
+      <div className="page-content">
+        <header className={styles.header}>
+          <div className={styles.greeting}>
+            <p className="muted">Welcome back,</p>
+            <h1>{settings.userName || 'User'}</h1>
+          </div>
+          <button className="overlay-close" onClick={() => void refreshHome()} type="button">
+            <MdRefresh size={20} />
+          </button>
+        </header>
+
+        <div className="scroll-row">
+          <button
+            className={`${styles.walletCard} app-card`}
+            onClick={openMainWalletEditor}
+            style={{ background: gradientForColor(settings.mainWalletColor), border: 'none' }}
+            type="button"
+          >
+            <div className={styles.walletCardInner}>
+              <div className={styles.walletTopRow}>
+                <span className={styles.walletBadge}>
+                  <MdAccountBalanceWallet size={16} />
+                  All Wallets
+                </span>
+                <span className="overlay-close" style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                  <MdArrowOutward size={18} />
+                </span>
+              </div>
+              <p className={styles.walletBalanceLabel}>Available Balance</p>
+              <h2 className={styles.walletBalance}>{formatMoney(mainWalletBalance, currencySymbol)}</h2>
+              <div className={styles.walletFooter}>
+                <div>
+                  <p className={styles.walletName}>{settings.mainWalletName}</p>
+                  <p className={styles.walletHint}>Tap to manage</p>
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {wallets.wallets.map((wallet) => (
+            <button
+              className={`${styles.walletCard} app-card`}
+              key={wallet.id}
+              onClick={() => setSelectedWalletId(wallet.id ?? null)}
+              style={{ background: gradientForColor(wallet.colorValue), border: 'none' }}
+              type="button"
+            >
+              <div className={styles.walletCardInner}>
+                <div className={styles.walletTopRow}>
+                  <span className={styles.walletBadge}>
+                    <MdCreditCard size={16} />
+                    {wallet.type.toUpperCase()}
+                  </span>
+                  <span className="overlay-close" style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                    <MdArrowOutward size={18} />
+                  </span>
+                </div>
+                <p className={styles.walletBalanceLabel}>Available Balance</p>
+                <h2 className={styles.walletBalance}>
+                  {formatMoney(transactions.getWalletBalance(wallet.id!), currencySymbol)}
+                </h2>
+                <div className={styles.walletFooter}>
+                  <div>
+                    <p className={styles.walletName}>{wallet.name}</p>
+                    <p className={styles.walletHint}>Tap to manage</p>
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+
+          <Link className={`app-card ${styles.addTile}`} to="/wallets/new">
+            <span
+              className="icon-chip"
+              style={{ width: '3.4rem', height: '3.4rem', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white' }}
+            >
+              <MdAddCard size={28} />
+            </span>
+            <div>
+              <h2 style={{ margin: 0 }}>Add Card</h2>
+              <p className="helper-text" style={{ marginTop: '0.45rem' }}>
+                Create another wallet with its own balance and color theme.
+              </p>
+            </div>
+          </Link>
+        </div>
+
+        <SectionList headerText="Expense Groups">
+          {topGroups.length ? (
+            topGroups.map((group) => {
+              const transactionCount = groups.getGroupTransactions(group.id!).length;
+              return (
+                <Link className="inset-item" key={group.id} to={`/groups/${group.id}`}>
+                  <span
+                    className="icon-chip"
+                    style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}
+                  >
+                    <MdFolder size={22} />
+                  </span>
+                  <span className="inset-item-content">
+                    <span className="inset-title">{group.name}</span>
+                    <span className="inset-subtitle">{formatTransactionCount(transactionCount)}</span>
+                  </span>
+                  <strong className={styles.sectionValue}>
+                    {formatMoney(groups.getGroupTotal(group.id!), currencySymbol)}
+                  </strong>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="empty-state">
+              <h3>No expense groups yet</h3>
+              <p>Create your first group to organize your expenses.</p>
+            </div>
+          )}
+        </SectionList>
+
+        <SectionList headerText="Recent Transactions">
+          {recentTransactions.length ? (
+            recentTransactions.map((transaction) => {
+              const isIncome = transaction.type === 'income';
+              return (
+                <div className="inset-item" key={transaction.id}>
+                  <span
+                    className="icon-chip"
+                    style={{
+                      background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)',
+                      color: isIncome ? '#059669' : '#e11d48',
+                    }}
+                  >
+                    <MdAttachMoney size={22} />
+                  </span>
+                  <span className="inset-item-content">
+                    <span className="inset-title">{transaction.description}</span>
+                    <span className="inset-subtitle">
+                      {transaction.category} • {formatShortDate(transaction.date)}
+                    </span>
+                  </span>
+                  <strong className={styles.sectionValue}>
+                    {formatMoney(transaction.amount, currencySymbol)}
+                  </strong>
+                </div>
+              );
+            })
+          ) : (
+            <div className="empty-state">
+              <h3>No transactions yet</h3>
+              <p>Start by adding your first transaction.</p>
+            </div>
+          )}
+        </SectionList>
+      </div>
+
+      <Modal
+        description={selectedWallet ? selectedWallet.type : undefined}
+        onClose={() => setSelectedWalletId(null)}
+        open={Boolean(selectedWallet)}
+        title={selectedWallet?.name ?? ''}
+        variant="sheet"
+      >
+        {selectedWallet ? (
+          <div className="stack-form">
+            <button
+              className="inset-item"
+              onClick={() => {
+                setSelectedWalletId(null);
+                navigate(`/transactions/new?walletId=${selectedWallet.id}&type=income`);
+              }}
+              type="button"
+            >
+              <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
+                <MdAttachMoney size={24} />
+              </span>
+              <span className="inset-item-content">
+                <span className="inset-title">Add Income</span>
+                <span className="inset-subtitle">Record money coming into this card</span>
+              </span>
+            </button>
+            <button
+              className="inset-item"
+              onClick={() => {
+                setSelectedWalletId(null);
+                navigate(`/transactions/new?walletId=${selectedWallet.id}&type=expense`);
+              }}
+              type="button"
+            >
+              <span className="icon-chip" style={{ background: 'rgba(244,63,94,0.12)', color: '#e11d48' }}>
+                <MdAttachMoney size={24} />
+              </span>
+              <span className="inset-item-content">
+                <span className="inset-title">Deduct Money</span>
+                <span className="inset-subtitle">Record an expense for this card</span>
+              </span>
+            </button>
+            <button
+              className="inset-item"
+              onClick={() => {
+                setSelectedWalletId(null);
+                navigate(`/wallets/${selectedWallet.id}/edit`);
+              }}
+              type="button"
+            >
+              <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+                <MdCreditCard size={24} />
+              </span>
+              <span className="inset-item-content">
+                <span className="inset-title">Manage Card</span>
+                <span className="inset-subtitle">Edit the name, type, and color</span>
+              </span>
+            </button>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        description="Update the label and accent color for your combined balance card."
+        onClose={() => setIsMainWalletOpen(false)}
+        open={isMainWalletOpen}
+        title="Edit Main Card"
+      >
+        <div className="stack-form">
+          <div className="form-field">
+            <label className="field-label" htmlFor="main-wallet-name">
+              Wallet Name
+            </label>
+            <input
+              className="text-input"
+              id="main-wallet-name"
+              onChange={(event) => setMainWalletNameDraft(event.target.value)}
+              value={mainWalletNameDraft}
+            />
+          </div>
+
+          <div>
+            <p className="field-label">Card Color</p>
+            <div className="pill-row" style={{ marginTop: '0.7rem' }}>
+              {walletColors.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setMainWalletColorDraft(color)}
+                  style={{
+                    width: '2.9rem',
+                    height: '2.9rem',
+                    borderRadius: '999px',
+                    border: color === mainWalletColorDraft ? '3px solid white' : '1px solid rgba(217,227,240,0.9)',
+                    boxShadow:
+                      color === mainWalletColorDraft
+                        ? `0 0 0 3px ${numberToColorHex(color)}40`
+                        : 'none',
+                    background: numberToColorHex(color),
+                  }}
+                  type="button"
+                />
+              ))}
+            </div>
+          </div>
+
+          <button
+            className="primary-button"
+            onClick={() => {
+              void settings.updateMainWallet({
+                mainWalletName: mainWalletNameDraft.trim() || 'Total Money',
+                mainWalletColor: mainWalletColorDraft,
+              });
+              setIsMainWalletOpen(false);
+            }}
+            type="button"
+          >
+            Save Changes
+          </button>
+        </div>
+      </Modal>
+    </main>
+  );
+}

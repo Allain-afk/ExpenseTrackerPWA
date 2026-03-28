@@ -1,0 +1,79 @@
+.headerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.headerBar h1,
+.headerBar p {
+  margin: 0;
+}
+
+.headerBar h1 {
+  font-size: 1.85rem;
+  letter-spacing: -0.06em;
+}
+
+.groupedStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.amountCell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.tinyActions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.iconAction {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
+.heroCard {
+  padding: 1.2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.heroNumbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.heroNumbers h2,
+.heroNumbers p {
+  margin: 0;
+}
+
+.transactionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transactionCard {
+  padding: 1rem;
+}
+
+@media (max-width: 720px) {
+  .heroNumbers {
+    grid-template-columns: 1fr;
+  }
+}
