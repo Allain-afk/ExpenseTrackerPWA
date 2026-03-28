@@ -28,10 +28,17 @@ export const availableCurrencies: CurrencyOption[] = [
 export const walletColors = [
   0xff1f2937,
   0xff2563eb,
+  0xff0f766e,
+  0xff0284c7,
   0xff059669,
   0xffdc2626,
+  0xffe11d48,
+  0xffec4899,
   0xffd97706,
+  0xfff97316,
   0xff7c3aed,
+  0xff6366f1,
+  0xffa855f7,
   0xff475569,
 ];
 
