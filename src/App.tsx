@@ -11,6 +11,7 @@ import { ManageWalletsScreen } from './screens/ManageWalletsScreen';
 import { TransactionFormScreen } from './screens/TransactionFormScreen';
 import { GroupFormScreen } from './screens/GroupFormScreen';
 import { WalletFormScreen } from './screens/WalletFormScreen';
+import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 
 function BootstrapBoundary({
   children,
@@ -150,6 +151,7 @@ export default function App() {
     <AppProviders>
       <BrowserRouter>
         <AppRoutes />
+        <PwaInstallPrompt />
       </BrowserRouter>
     </AppProviders>
   );
