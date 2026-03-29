@@ -33,6 +33,21 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
+    version: '1.3.3',
+    title: 'Transaction Polish & Daily Tips',
+    description: [
+      'Added Allowance as an income category for easier personal budget tracking.',
+      'Updated transaction icons with clearer plus and minus badges across Home and Transactions.',
+      'Refined the Add Transaction screen with sectioned cards, a stronger amount input, a lower sticky save action, and cleaner header spacing.',
+      'Replaced the Home screen expense groups section with a rotating Tip of the Day card that changes every day.',
+    ],
+    accent: '#0f766e',
+    badgeBackground: 'rgba(15, 118, 110, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
     version: '1.3.2',
     title: 'Themes, Ordering & Delete Safeguards',
     description: [
@@ -45,7 +60,6 @@ const versionHistory: Array<{
     badgeBackground: 'rgba(219, 39, 119, 0.12)',
     surface:
       'linear-gradient(180deg, rgba(255, 244, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
-    latest: true,
   },
   {
     version: '1.3.1',
@@ -370,7 +384,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.3.2</span>
+              <span className="inset-subtitle">1.3.3</span>
             </span>
           </button>
           <div className="inset-item">

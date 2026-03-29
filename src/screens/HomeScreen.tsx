@@ -4,20 +4,19 @@ import {
   MdAccountBalanceWallet,
   MdAddCard,
   MdArrowOutward,
-  MdAttachMoney,
   MdCreditCard,
-  MdFolder,
   MdRefresh,
+  MdSavings,
 } from 'react-icons/md';
 import { useTransactions } from '../hooks/useTransactions';
-import { useExpenseGroups } from '../hooks/useExpenseGroups';
 import { useWallets } from '../hooks/useWallets';
 import { useSettings } from '../hooks/useSettings';
 import { MainWalletForm } from '../components/forms/MainWalletForm';
+import { TransactionTypeIcon } from '../components/common/TransactionTypeIcon';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
-import { numberToColorHex } from '../lib/utils/format';
-import { formatMoney, formatTransactionCount } from '../lib/utils/format';
+import { numberToColorHex, formatMoney } from '../lib/utils/format';
 import { formatShortDate } from '../lib/utils/date';
+import { moneySavingTips } from '../lib/constants/moneySavingTips';
 import { SectionList } from '../components/common/SectionList';
 import { Modal } from '../components/common/Modal';
 import styles from './HomeScreen.module.css';
@@ -31,10 +30,14 @@ function gradientForColor(colorValue: number): string {
   return `linear-gradient(135deg, ${base} 0%, rgba(255,255,255,0.18) 180%)`;
 }
 
+function getDailyTipIndex(date: Date, tipCount: number): number {
+  const localDayAsUtc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.floor(localDayAsUtc / 86400000) % tipCount;
+}
+
 export function HomeScreen({ currencySymbol }: HomeScreenProps) {
   const navigate = useNavigate();
   const transactions = useTransactions();
-  const groups = useExpenseGroups();
   const wallets = useWallets();
   const settings = useSettings();
 
@@ -53,16 +56,12 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
   const selectedWallet = selectedWalletId
     ? wallets.getWalletById(selectedWalletId)
     : undefined;
-
-  const topGroups = groups.groups.slice(0, 3);
+  const dailyTipIndex = getDailyTipIndex(new Date(), moneySavingTips.length);
+  const dailyTip = moneySavingTips[dailyTipIndex];
   const recentTransactions = transactions.transactions.slice(0, 5);
 
   async function refreshHome(): Promise<void> {
-    await Promise.all([
-      transactions.loadTransactions(),
-      groups.loadExpenseGroups(),
-      wallets.loadWallets(),
-    ]);
+    await Promise.all([transactions.loadTransactions(), wallets.loadWallets()]);
   }
 
   function openMainWalletEditor() {
@@ -162,48 +161,30 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
           </Link>
         </div>
 
-        <SectionList headerText="Expense Groups">
-          {topGroups.length ? (
-            topGroups.map((group) => {
-              const transactionCount = groups.getGroupTransactions(group.id!).length;
-              return (
-                <Link className="inset-item" key={group.id} to={`/groups/${group.id}`}>
-                  <span className="icon-chip accent-chip">
-                    <MdFolder size={22} />
-                  </span>
-                  <span className="inset-item-content">
-                    <span className="inset-title">{group.name}</span>
-                    <span className="inset-subtitle">{formatTransactionCount(transactionCount)}</span>
-                  </span>
-                  <strong className={styles.sectionValue}>
-                    {formatMoney(groups.getGroupTotal(group.id!), currencySymbol)}
-                  </strong>
-                </Link>
-              );
-            })
-          ) : (
-            <div className="empty-state">
-              <h3>No expense groups yet</h3>
-              <p>Create your first group to organize your expenses.</p>
+        <SectionList
+          footerText="A new money-saving tip appears every day."
+          headerText="Money Saving Tip"
+        >
+          <div className={`inset-item ${styles.tipItem}`}>
+            <span className={`icon-chip ${styles.tipIcon}`}>
+              <MdSavings size={22} />
+            </span>
+            <div className={styles.tipCopy}>
+              <div className={styles.tipHeader}>
+                <span className="inset-title">{dailyTip.title}</span>
+                <span className={`tag ${styles.tipTag}`}>Tip of the Day</span>
+              </div>
+              <p className={styles.tipDescription}>{dailyTip.description}</p>
             </div>
-          )}
+          </div>
         </SectionList>
 
         <SectionList headerText="Recent Transactions">
           {recentTransactions.length ? (
             recentTransactions.map((transaction) => {
-              const isIncome = transaction.type === 'income';
               return (
                 <div className="inset-item" key={transaction.id}>
-                  <span
-                    className="icon-chip"
-                    style={{
-                      background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)',
-                      color: isIncome ? '#059669' : '#e11d48',
-                    }}
-                  >
-                    <MdAttachMoney size={22} />
-                  </span>
+                  <TransactionTypeIcon type={transaction.type} />
                   <span className="inset-item-content">
                     <span className="inset-title">{transaction.description}</span>
                     <span className="inset-subtitle">
@@ -242,9 +223,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
               }}
               type="button"
             >
-              <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
-                <MdAttachMoney size={24} />
-              </span>
+              <TransactionTypeIcon dimension="2.9rem" size={22} type="income" />
               <span className="inset-item-content">
                 <span className="inset-title">Add Income</span>
                 <span className="inset-subtitle">Record money coming into this card</span>
@@ -258,9 +237,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
               }}
               type="button"
             >
-              <span className="icon-chip" style={{ background: 'rgba(244,63,94,0.12)', color: '#e11d48' }}>
-                <MdAttachMoney size={24} />
-              </span>
+              <TransactionTypeIcon dimension="2.9rem" size={22} type="expense" />
               <span className="inset-item-content">
                 <span className="inset-title">Deduct Money</span>
                 <span className="inset-subtitle">Record an expense for this card</span>

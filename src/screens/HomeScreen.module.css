@@ -116,6 +116,43 @@
   gap: 1rem;
 }
 
+.tipItem {
+  align-items: flex-start;
+}
+
+.tipCopy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.tipHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.tipDescription {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.tipIcon {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.tipTag {
+  flex-shrink: 0;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 .sectionValue {
   font-weight: 800;
   letter-spacing: -0.04em;

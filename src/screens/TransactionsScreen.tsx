@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MdDeleteOutline, MdEdit, MdFilterList, MdFolder } from 'react-icons/md';
 import { useTransactions } from '../hooks/useTransactions';
 import { useExpenseGroups } from '../hooks/useExpenseGroups';
+import { TransactionTypeIcon } from '../components/common/TransactionTypeIcon';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { formatGroupedDate } from '../lib/utils/date';
 import { formatMoney } from '../lib/utils/format';
@@ -74,18 +75,9 @@ export function TransactionsScreen({ currencySymbol }: TransactionsScreenProps) 
               <SectionList headerText={groupLabel} key={groupLabel}>
                 {items.map((transaction) => {
                   const group = transaction.groupId ? getGroupById(transaction.groupId) : undefined;
-                  const isIncome = transaction.type === 'income';
                   return (
                     <div className="inset-item" key={transaction.id}>
-                      <span
-                        className="icon-chip"
-                        style={{
-                          background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)',
-                          color: isIncome ? '#059669' : '#e11d48',
-                        }}
-                      >
-                        ₱
-                      </span>
+                      <TransactionTypeIcon type={transaction.type} />
                       <span className="inset-item-content">
                         <span className="inset-title">{transaction.description}</span>
                         <span className="inset-subtitle">{transaction.category}</span>

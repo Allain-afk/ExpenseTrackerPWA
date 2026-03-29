@@ -12,6 +12,7 @@ import { GroupForm } from '../components/forms/GroupForm';
 import { WalletForm } from '../components/forms/WalletForm';
 import { Modal } from '../components/common/Modal';
 import { PageHeader } from '../components/common/PageHeader';
+import { TransactionTypeIcon } from '../components/common/TransactionTypeIcon';
 import styles from './TransactionFormScreen.module.css';
 
 function parseOptionalNumber(value: string | null): number | null {
@@ -42,9 +43,7 @@ export function TransactionFormScreen() {
   const initialGroupId = parseOptionalNumber(searchParams.get('groupId'));
   const initialWalletId = parseOptionalNumber(searchParams.get('walletId'));
 
-  const [amount, setAmount] = useState(
-    existingTransaction ? String(existingTransaction.amount) : '',
-  );
+  const [amount, setAmount] = useState(existingTransaction ? String(existingTransaction.amount) : '');
   const [description, setDescription] = useState(existingTransaction?.description ?? '');
   const [selectedType, setSelectedType] = useState<'income' | 'expense'>(
     existingTransaction?.type ?? initialType,
@@ -53,9 +52,7 @@ export function TransactionFormScreen() {
     existingTransaction?.category ??
       ((initialType === 'income' ? incomeCategories[0] : expenseCategories[0]) as string),
   );
-  const [selectedDate, setSelectedDate] = useState(
-    existingTransaction?.date ?? new Date(),
-  );
+  const [selectedDate, setSelectedDate] = useState(existingTransaction?.date ?? new Date());
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(
     existingTransaction?.groupId ?? initialGroupId,
   );
@@ -97,12 +94,20 @@ export function TransactionFormScreen() {
 
   const categories = selectedType === 'expense' ? expenseCategories : incomeCategories;
   const selectedWallet = selectedWalletId ? wallets.getWalletById(selectedWalletId) : undefined;
+  const selectedGroup = selectedGroupId ? groups.getGroupById(selectedGroupId) : undefined;
+  const submitLabel = isEditing
+    ? selectedType === 'income'
+      ? 'Update Income'
+      : 'Update Expense'
+    : selectedType === 'income'
+      ? 'Add Income'
+      : 'Add Expense';
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const parsedAmount = Number.parseFloat(amount);
+    const parsedInputAmount = Number.parseFloat(amount);
 
-    if (!amount.trim() || Number.isNaN(parsedAmount)) {
+    if (!amount.trim() || Number.isNaN(parsedInputAmount)) {
       showErrorToast('Invalid amount', 'Please enter a valid amount.');
       return;
     }
@@ -121,7 +126,7 @@ export function TransactionFormScreen() {
       if (isEditing && existingTransaction) {
         await transactions.updateTransaction({
           ...existingTransaction,
-          amount: parsedAmount,
+          amount: parsedInputAmount,
           category: selectedCategory,
           description: description.trim(),
           date: selectedDate,
@@ -131,7 +136,7 @@ export function TransactionFormScreen() {
         });
       } else {
         await transactions.addTransaction({
-          amount: parsedAmount,
+          amount: parsedInputAmount,
           category: selectedCategory,
           description: description.trim(),
           date: selectedDate,
@@ -152,8 +157,7 @@ export function TransactionFormScreen() {
         navigate('/app/transactions', { replace: true });
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'We could not save the transaction.';
+      const message = error instanceof Error ? error.message : 'We could not save the transaction.';
       showErrorToast('Transaction save failed', message);
     }
   }
@@ -162,162 +166,249 @@ export function TransactionFormScreen() {
     <main className="app-page">
       <div className="page-content">
         <PageHeader
+          backButtonStyle={{ width: '2.55rem', height: '2.55rem' }}
           backTo="/app/transactions"
+          leadingStyle={{ gap: '0.95rem', paddingInlineStart: '0.3rem' }}
+          subtitle={
+            isEditing
+              ? 'Update the amount, category, wallet, and date in one clean flow.'
+              : 'Capture the amount, category, wallet, and date in one clean flow.'
+          }
           title={isEditing ? 'Edit Transaction' : 'Add Transaction'}
         />
 
         <form className={styles.layout} onSubmit={(event) => void handleSubmit(event)}>
-          <div className="segmented-control">
+          <div className={styles.typeSwitch}>
             <button
-              className={`segment-button ${selectedType === 'expense' ? 'active' : ''}`}
+              aria-pressed={selectedType === 'expense'}
+              className={`${styles.typeButton} ${
+                selectedType === 'expense' ? styles.typeButtonActiveExpense : ''
+              }`}
               onClick={() => setSelectedType('expense')}
               type="button"
             >
-              Expense
+              <TransactionTypeIcon dimension="2.15rem" size={15} type="expense" />
+              <span className={styles.typeButtonCopy}>
+                <strong>Expense</strong>
+                <small>Money out</small>
+              </span>
             </button>
             <button
-              className={`segment-button ${selectedType === 'income' ? 'active' : ''}`}
+              aria-pressed={selectedType === 'income'}
+              className={`${styles.typeButton} ${
+                selectedType === 'income' ? styles.typeButtonActiveIncome : ''
+              }`}
               onClick={() => setSelectedType('income')}
               type="button"
             >
-              Income
+              <TransactionTypeIcon dimension="2.15rem" size={15} type="income" />
+              <span className={styles.typeButtonCopy}>
+                <strong>Income</strong>
+                <small>Money in</small>
+              </span>
             </button>
           </div>
 
-          <section className="app-card" style={{ padding: '1rem' }}>
-            <div className="form-field">
-              <label className="field-label" htmlFor="amount-input">
-                Amount ({settings.currencySymbol})
-              </label>
-              <input
-                className="text-input"
-                id="amount-input"
-                inputMode="decimal"
-                onChange={(event) => setAmount(event.target.value)}
-                value={amount}
-              />
+          <section className={`app-card ${styles.sectionCard}`}>
+            <div className={styles.sectionHeader}>
+              <p className="eyebrow">Details</p>
+              <h2>Core Details</h2>
+              <p className={styles.sectionDescription}>
+                Start with the amount, then add a clear description and category.
+              </p>
             </div>
-            <div className="form-field" style={{ marginTop: '1rem' }}>
-              <label className="field-label" htmlFor="description-input">
-                Description
-              </label>
-              <input
-                className="text-input"
-                id="description-input"
-                onChange={(event) => setDescription(event.target.value)}
-                value={description}
-              />
-            </div>
-            <div className="form-field" style={{ marginTop: '1rem' }}>
-              <label className="field-label" htmlFor="category-input">
-                Category
-              </label>
-              <select
-                className="select-input"
-                id="category-input"
-                onChange={(event) => setSelectedCategory(event.target.value)}
-                value={selectedCategory}
-              >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </section>
 
-          <section className="app-card" style={{ padding: '1rem' }}>
-            {groups.groups.length ? (
+            <div className={styles.fieldGrid}>
+              <div className={`${styles.amountField} ${styles.wideRow}`}>
+                <label className="field-label" htmlFor="amount-input">
+                  Amount ({settings.currencySymbol})
+                </label>
+                <div className={styles.amountShell}>
+                  <span className={styles.amountPrefix}>{settings.currencySymbol}</span>
+                  <input
+                    className={styles.amountInput}
+                    id="amount-input"
+                    inputMode="decimal"
+                    onChange={(event) => setAmount(event.target.value)}
+                    placeholder={selectedType === 'income' ? '0.00 received' : '0.00 spent'}
+                    value={amount}
+                  />
+                  <TransactionTypeIcon dimension="2.35rem" size={16} type={selectedType} />
+                </div>
+                <p className="helper-text">
+                  {selectedType === 'income'
+                    ? 'Record money coming in for this wallet.'
+                    : 'Record spending and assign it to the right category.'}
+                </p>
+              </div>
+
               <div className="form-field">
-                <label className="field-label" htmlFor="group-select">
-                  Expense Group (Optional)
+                <label className="field-label" htmlFor="description-input">
+                  Description
+                </label>
+                <input
+                  className="text-input"
+                  id="description-input"
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder={
+                    selectedType === 'income'
+                      ? 'Salary, allowance, freelance work'
+                      : 'Groceries, commute, coffee'
+                  }
+                  value={description}
+                />
+              </div>
+
+              <div className="form-field">
+                <label className="field-label" htmlFor="category-input">
+                  Category
                 </label>
                 <select
                   className="select-input"
-                  id="group-select"
-                  onChange={(event) => setSelectedGroupId(parseOptionalNumber(event.target.value))}
-                  value={selectedGroupId ?? ''}
+                  id="category-input"
+                  onChange={(event) => setSelectedCategory(event.target.value)}
+                  value={selectedCategory}
                 >
-                  <option value="">No Group</option>
-                  {groups.groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
                     </option>
                   ))}
                 </select>
               </div>
-            ) : null}
+            </div>
+          </section>
 
-            {!isEditing ? (
-              wallets.wallets.length ? (
-                <div className="form-field" style={{ marginTop: '1rem' }}>
-                  <label className="field-label" htmlFor="wallet-select">
-                    Wallet Select (Required)
-                  </label>
-                  <select
-                    className="select-input"
-                    id="wallet-select"
-                    onChange={(event) => setSelectedWalletId(parseOptionalNumber(event.target.value))}
-                    value={selectedWalletId ?? ''}
+          <section className={`app-card ${styles.sectionCard}`}>
+            <div className={styles.sectionHeader}>
+              <p className="eyebrow">Assignment</p>
+              <h2>Wallet &amp; Group</h2>
+              <p className={styles.sectionDescription}>
+                Choose where this transaction belongs and organize it if needed.
+              </p>
+            </div>
+
+            <div className={styles.assignmentGrid}>
+              {!isEditing ? (
+                wallets.wallets.length ? (
+                  <div className="form-field">
+                    <label className="field-label" htmlFor="wallet-select">
+                      Wallet (Required)
+                    </label>
+                    <select
+                      className="select-input"
+                      id="wallet-select"
+                      onChange={(event) => setSelectedWalletId(parseOptionalNumber(event.target.value))}
+                      value={selectedWalletId ?? ''}
+                    >
+                      {wallets.wallets.map((wallet) => (
+                        <option key={wallet.id} value={wallet.id}>
+                          {wallet.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="helper-text">New transactions are saved to one specific wallet card.</p>
+                  </div>
+                ) : (
+                  <button
+                    className={`${styles.actionRow} ${styles.wideRow}`}
+                    onClick={() => setIsWalletModalOpen(true)}
+                    type="button"
                   >
-                    {wallets.wallets.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>
-                        {wallet.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <button className={`inset-item ${styles.inlineInfo}`} onClick={() => setIsWalletModalOpen(true)} type="button">
+                    <span className="icon-chip accent-chip">
+                      <MdCreditCard size={22} />
+                    </span>
+                    <span className="inset-item-content">
+                      <span className="inset-title">Add your first card</span>
+                      <span className="inset-subtitle">
+                        Transactions need to be assigned to a card or wallet.
+                      </span>
+                    </span>
+                  </button>
+                )
+              ) : selectedWallet ? (
+                <div className={`${styles.lockedWallet} ${styles.wideRow}`}>
                   <span className="icon-chip accent-chip">
                     <MdCreditCard size={22} />
                   </span>
                   <span className="inset-item-content">
-                    <span className="inset-title">Add your first Wallet!</span>
+                    <span className="inset-title">{selectedWallet.name}</span>
                     <span className="inset-subtitle">
-                      Transactions need to be assigned to a card or wallet.
+                      Wallet stays linked while you edit this transaction.
                     </span>
                   </span>
-                </button>
-              )
-            ) : selectedWallet ? (
-              <div className={styles.inlineInfo}>
+                </div>
+              ) : (
+                null
+              )}
+
+              {groups.groups.length ? (
+                <div className="form-field">
+                  <label className="field-label" htmlFor="group-select">
+                    Expense Group (Optional)
+                  </label>
+                  <select
+                    className="select-input"
+                    id="group-select"
+                    onChange={(event) => setSelectedGroupId(parseOptionalNumber(event.target.value))}
+                    value={selectedGroupId ?? ''}
+                  >
+                    <option value="">No Group</option>
+                    {groups.groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="helper-text">
+                    {selectedGroup
+                      ? `${selectedGroup.name} is currently selected.`
+                      : 'Leave this empty if the transaction should stay outside a group.'}
+                  </p>
+                </div>
+              ) : null}
+
+              <button
+                className={`${styles.actionRow} ${styles.wideRow}`}
+                onClick={() => setIsGroupModalOpen(true)}
+                type="button"
+              >
                 <span className="icon-chip accent-chip">
-                  <MdCreditCard size={22} />
+                  <MdFolder size={22} />
                 </span>
                 <span className="inset-item-content">
-                  <span className="inset-title">{selectedWallet.name}</span>
-                  <span className="inset-subtitle">Wallet stays linked while editing</span>
+                  <span className="inset-title">Create New Group</span>
+                  <span className="inset-subtitle">
+                    Create a group without leaving this form.
+                  </span>
                 </span>
-              </div>
-            ) : null}
+              </button>
+            </div>
+          </section>
 
-            <button className={`inset-item ${styles.inlineInfo}`} onClick={() => setIsGroupModalOpen(true)} type="button">
-              <span className="icon-chip accent-chip">
-                <MdFolder size={22} />
-              </span>
-              <span className="inset-item-content">
-                <span className="inset-title">Create New Group</span>
-                <span className="inset-subtitle">Organize your expenses</span>
-              </span>
-            </button>
+          <section className={`app-card ${styles.sectionCard}`}>
+            <div className={styles.sectionHeader}>
+              <p className="eyebrow">Schedule</p>
+              <h2>Date</h2>
+              <p className={styles.sectionDescription}>
+                Choose when this transaction happened.
+              </p>
+            </div>
 
-            <div className={styles.dateSection}>
+            <div className={styles.datePanel}>
               <div className={styles.dateHeading}>
-                <span
-                  className="icon-chip"
-                  style={{ background: 'rgba(71,85,105,0.12)', color: '#475569' }}
-                >
+                <span className={`icon-chip ${styles.dateIcon}`}>
                   <MdCalendarToday size={22} />
                 </span>
                 <span className={styles.dateHeadingCopy}>
-                  <span className="inset-title">Date</span>
-                  <span className="inset-subtitle">Select the transaction date</span>
+                  <span className="inset-title">Transaction date</span>
+                  <span className="inset-subtitle">
+                    Use the calendar to keep your history accurate.
+                  </span>
                 </span>
               </div>
               <label className={styles.dateField} htmlFor="transaction-date">
-                <span className={styles.dateFieldLabel}>Transaction date</span>
+                <span className={styles.dateFieldLabel}>Date</span>
                 <input
                   className={`date-input ${styles.dateInput}`}
                   id="transaction-date"
@@ -328,9 +419,12 @@ export function TransactionFormScreen() {
               </label>
             </div>
           </section>
-          <button className="primary-button" type="submit">
-            {isEditing ? 'Update Transaction' : 'Add Transaction'}
-          </button>
+
+          <div className={styles.submitBar}>
+            <button className={`primary-button ${styles.submitButton}`} type="submit">
+              {submitLabel}
+            </button>
+          </div>
         </form>
       </div>
 
