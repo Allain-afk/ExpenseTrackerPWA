@@ -6,6 +6,7 @@ import { useExpenseGroups } from '../hooks/useExpenseGroups';
 import { useWallets } from '../hooks/useWallets';
 import { useSettings } from '../hooks/useSettings';
 import { expenseCategories, incomeCategories } from '../lib/constants/categories';
+import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { formatDateForInput, parseInputDate } from '../lib/utils/date';
 import { GroupForm } from '../components/forms/GroupForm';
 import { WalletForm } from '../components/forms/WalletForm';
@@ -61,7 +62,6 @@ export function TransactionFormScreen() {
   const [selectedWalletId, setSelectedWalletId] = useState<number | null>(
     existingTransaction?.walletId ?? initialWalletId,
   );
-  const [error, setError] = useState<string | null>(null);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [groupModalBusy, setGroupModalBusy] = useState(false);
@@ -103,49 +103,58 @@ export function TransactionFormScreen() {
     const parsedAmount = Number.parseFloat(amount);
 
     if (!amount.trim() || Number.isNaN(parsedAmount)) {
-      setError('Please enter a valid amount.');
+      showErrorToast('Invalid amount', 'Please enter a valid amount.');
       return;
     }
 
     if (!description.trim()) {
-      setError('Please enter a description.');
+      showErrorToast('Description required', 'Please enter a description.');
       return;
     }
 
     if (!isEditing && wallets.wallets.length > 0 && selectedWalletId === null) {
-      setError('Please select a specific wallet.');
+      showErrorToast('Wallet required', 'Please select a specific wallet.');
       return;
     }
 
-    setError(null);
+    try {
+      if (isEditing && existingTransaction) {
+        await transactions.updateTransaction({
+          ...existingTransaction,
+          amount: parsedAmount,
+          category: selectedCategory,
+          description: description.trim(),
+          date: selectedDate,
+          type: selectedType,
+          groupId: selectedGroupId,
+          walletId: existingTransaction.walletId ?? null,
+        });
+      } else {
+        await transactions.addTransaction({
+          amount: parsedAmount,
+          category: selectedCategory,
+          description: description.trim(),
+          date: selectedDate,
+          type: selectedType,
+          groupId: selectedGroupId,
+          walletId: selectedWalletId,
+        });
+      }
 
-    if (isEditing && existingTransaction) {
-      await transactions.updateTransaction({
-        ...existingTransaction,
-        amount: parsedAmount,
-        category: selectedCategory,
-        description: description.trim(),
-        date: selectedDate,
-        type: selectedType,
-        groupId: selectedGroupId,
-        walletId: existingTransaction.walletId ?? null,
-      });
-    } else {
-      await transactions.addTransaction({
-        amount: parsedAmount,
-        category: selectedCategory,
-        description: description.trim(),
-        date: selectedDate,
-        type: selectedType,
-        groupId: selectedGroupId,
-        walletId: selectedWalletId,
-      });
-    }
+      showSuccessToast(
+        isEditing ? 'Transaction updated' : 'Transaction added',
+        `${description.trim()} | ${selectedCategory}`,
+      );
 
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/app/transactions', { replace: true });
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate('/app/transactions', { replace: true });
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'We could not save the transaction.';
+      showErrorToast('Transaction save failed', message);
     }
   }
 
@@ -319,9 +328,6 @@ export function TransactionFormScreen() {
               </label>
             </div>
           </section>
-
-          {error ? <div className="error-banner">{error}</div> : null}
-
           <button className="primary-button" type="submit">
             {isEditing ? 'Update Transaction' : 'Add Transaction'}
           </button>
@@ -347,6 +353,10 @@ export function TransactionFormScreen() {
               });
               setSelectedGroupId(id);
               setIsGroupModalOpen(false);
+              showSuccessToast('Group created', `${name} is ready to organize expenses.`);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'We could not create the group.';
+              showErrorToast('Group creation failed', message);
             } finally {
               setGroupModalBusy(false);
             }
@@ -362,12 +372,21 @@ export function TransactionFormScreen() {
       >
         <WalletForm
           loading={walletModalBusy}
-          onSubmit={async ({ colorValue, name, type }) => {
+          onSubmit={async ({ colorValue, isHidden, name, type }) => {
             setWalletModalBusy(true);
             try {
-              const id = await wallets.addWallet({ name, type, colorValue });
+              const id = await wallets.addWallet({ name, type, colorValue, isHidden });
               setSelectedWalletId(id);
               setIsWalletModalOpen(false);
+              showSuccessToast(
+                'Card added',
+                isHidden
+                  ? `${name} is hidden on Home, but available for this transaction.`
+                  : `${name} is now available for transactions.`,
+              );
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'We could not add the card.';
+              showErrorToast('Card creation failed', message);
             } finally {
               setWalletModalBusy(false);
             }

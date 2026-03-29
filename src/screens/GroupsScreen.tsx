@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdAdd, MdDeleteOutline, MdEdit, MdFolder } from 'react-icons/md';
 import { useExpenseGroups } from '../hooks/useExpenseGroups';
+import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { formatMoney, formatTransactionCount } from '../lib/utils/format';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import styles from './ListScreen.module.css';
@@ -88,10 +89,16 @@ export function GroupsScreen({ currencySymbol }: GroupsScreenProps) {
         }
         onClose={() => setDeleteCandidateId(null)}
         onConfirm={async () => {
-          if (deleteCandidateId) {
-            await deleteExpenseGroup(deleteCandidateId);
+          try {
+            if (deleteCandidateId) {
+              await deleteExpenseGroup(deleteCandidateId);
+              showSuccessToast('Group deleted', deleteCandidate?.name ?? 'The group was removed.');
+            }
+            setDeleteCandidateId(null);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'We could not delete the group.';
+            showErrorToast('Delete failed', message);
           }
-          setDeleteCandidateId(null);
         }}
         open={deleteCandidateId !== null}
         title="Delete Group"

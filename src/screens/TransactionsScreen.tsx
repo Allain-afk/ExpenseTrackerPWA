@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MdDeleteOutline, MdEdit, MdFilterList, MdFolder } from 'react-icons/md';
 import { useTransactions } from '../hooks/useTransactions';
 import { useExpenseGroups } from '../hooks/useExpenseGroups';
+import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { formatGroupedDate } from '../lib/utils/date';
 import { formatMoney } from '../lib/utils/format';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
@@ -19,6 +20,9 @@ export function TransactionsScreen({ currencySymbol }: TransactionsScreenProps) 
   const [selectedFilter, setSelectedFilter] = useState<'All' | 'Income' | 'Expense'>('All');
   const [deleteCandidateId, setDeleteCandidateId] = useState<number | null>(null);
   const deferredFilter = useDeferredValue(selectedFilter);
+  const deleteCandidate = deleteCandidateId
+    ? transactions.find((transaction) => transaction.id === deleteCandidateId)
+    : undefined;
 
   const filteredTransactions = transactions.filter((transaction) => {
     if (deferredFilter === 'All') {
@@ -130,10 +134,20 @@ export function TransactionsScreen({ currencySymbol }: TransactionsScreenProps) 
         description="Are you sure you want to delete this transaction?"
         onClose={() => setDeleteCandidateId(null)}
         onConfirm={async () => {
-          if (deleteCandidateId) {
-            await deleteTransaction(deleteCandidateId);
+          try {
+            if (deleteCandidateId) {
+              await deleteTransaction(deleteCandidateId);
+              showSuccessToast(
+                'Transaction deleted',
+                deleteCandidate?.description ?? 'The transaction was removed.',
+              );
+            }
+            setDeleteCandidateId(null);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : 'We could not delete the transaction.';
+            showErrorToast('Delete failed', message);
           }
-          setDeleteCandidateId(null);
         }}
         open={deleteCandidateId !== null}
         title="Delete Transaction"

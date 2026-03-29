@@ -18,6 +18,7 @@ export interface SettingsContextValue {
   notificationMessage: string;
   mainWalletName: string;
   mainWalletColor: number;
+  mainWalletHidden: boolean;
   isSetupComplete: boolean;
   isLoaded: boolean;
   loadSettings: () => Promise<Settings>;
@@ -26,6 +27,7 @@ export interface SettingsContextValue {
   updateMainWallet: (input: {
     mainWalletName?: string;
     mainWalletColor?: number;
+    mainWalletHidden?: boolean;
   }) => Promise<void>;
   updateUserSettings: (input: {
     userName: string;
@@ -81,11 +83,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   async function updateMainWallet(input: {
     mainWalletName?: string;
     mainWalletColor?: number;
+    mainWalletHidden?: boolean;
   }): Promise<void> {
     await persistSettings({
       ...settings,
       mainWalletName: input.mainWalletName ?? settings.mainWalletName,
       mainWalletColor: input.mainWalletColor ?? settings.mainWalletColor,
+      mainWalletHidden: input.mainWalletHidden ?? settings.mainWalletHidden,
     });
   }
 
@@ -141,6 +145,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         notificationMessage: settings.notificationMessage,
         mainWalletName: settings.mainWalletName,
         mainWalletColor: settings.mainWalletColor,
+        mainWalletHidden: settings.mainWalletHidden,
         isSetupComplete,
         isLoaded,
         loadSettings,

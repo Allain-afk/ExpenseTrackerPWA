@@ -25,6 +25,7 @@ export interface Wallet {
   name: string;
   type: string;
   colorValue: number;
+  isHidden: boolean;
 }
 
 export interface Settings {
@@ -36,6 +37,7 @@ export interface Settings {
   notificationMessage: string;
   mainWalletName: string;
   mainWalletColor: number;
+  mainWalletHidden: boolean;
 }
 
 export interface CurrencyOption {

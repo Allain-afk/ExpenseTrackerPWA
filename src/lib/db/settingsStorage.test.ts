@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSettings } from '../constants/settings';
-import { createSettingsStorage } from './settingsStorage';
+import { createSettingsStorage, settingsStorageKeys } from './settingsStorage';
 
 class MemoryStorage implements Storage {
   private store = new Map<string, string>();
@@ -47,5 +47,25 @@ describe('settings storage', () => {
     expect(storage.loadSettings().currency).toBe('USD');
     expect(storage.loadSettings().currencySymbol).toBe('$');
     expect(storage.loadSetupComplete()).toBe(true);
+  });
+
+  it('fills in new settings fields when loading older saved settings', () => {
+    const backingStore = new MemoryStorage();
+    backingStore.setItem(
+      settingsStorageKeys.settings,
+      JSON.stringify({
+        currency: 'USD',
+        currencySymbol: '$',
+        mainWalletName: 'Pocket Money',
+      }),
+    );
+
+    const storage = createSettingsStorage(backingStore);
+    expect(storage.loadSettings()).toMatchObject({
+      currency: 'USD',
+      currencySymbol: '$',
+      mainWalletName: 'Pocket Money',
+      mainWalletHidden: false,
+    });
   });
 });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { MdNotificationsActive, MdPerson, MdWarning } from 'react-icons/md';
 import { useSettings } from '../hooks/useSettings';
+import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { requestNotificationPermission } from '../lib/utils/notifications';
 import styles from './SetupScreen.module.css';
 
@@ -19,7 +20,6 @@ export function SetupScreen() {
   const [message, setMessage] = useState(
     'Hey {name}! Slow down on spending! You are now low on budget. You dumbass!',
   );
-  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   if (isSetupComplete) {
@@ -31,21 +31,20 @@ export function SetupScreen() {
     const parsedThreshold = Number.parseFloat(threshold);
 
     if (!name.trim()) {
-      setError('Please enter your name.');
+      showErrorToast('Name required', 'Please enter your name before finishing setup.');
       return;
     }
 
     if (notificationsEnabled && (!threshold.trim() || Number.isNaN(parsedThreshold) || parsedThreshold < 0)) {
-      setError('Please enter a valid threshold amount.');
+      showErrorToast('Invalid threshold', 'Please enter a valid low-balance amount.');
       return;
     }
 
     if (notificationsEnabled && !message.trim()) {
-      setError('Please enter a notification message.');
+      showErrorToast('Message required', 'Please enter a notification message.');
       return;
     }
 
-    setError(null);
     setIsSaving(true);
 
     try {
@@ -60,7 +59,17 @@ export function SetupScreen() {
         notificationMessage: message.trim(),
       });
       await markSetupComplete();
+      showSuccessToast(
+        'Setup complete',
+        notificationsEnabled
+          ? 'Low-balance alerts are ready to keep an eye on your budget.'
+          : 'You can turn alerts on later from Settings.',
+      );
       navigate('/app/home', { replace: true });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'We could not save your setup right now.';
+      showErrorToast('Setup failed', message);
     } finally {
       setIsSaving(false);
     }
@@ -155,9 +164,6 @@ export function SetupScreen() {
               </div>
             ) : null}
           </section>
-
-          {error ? <div className="error-banner">{error}</div> : null}
-
           <button className="primary-button" disabled={isSaving} type="submit">
             {isSaving ? 'Saving...' : 'Complete Setup'}
           </button>

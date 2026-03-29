@@ -2,6 +2,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { GroupForm } from '../components/forms/GroupForm';
 import { PageHeader } from '../components/common/PageHeader';
 import { useExpenseGroups } from '../hooks/useExpenseGroups';
+import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 
 export function GroupFormScreen() {
   const navigate = useNavigate();
@@ -37,27 +38,36 @@ export function GroupFormScreen() {
           initialGroup={existingGroup}
           onSubmit={async ({ description, name }) => {
             const now = new Date();
+            try {
+              if (existingGroup) {
+                await groups.updateExpenseGroup({
+                  ...existingGroup,
+                  name,
+                  description: description || null,
+                  updatedAt: now,
+                });
+              } else {
+                await groups.addExpenseGroup({
+                  name,
+                  description: description || null,
+                  createdAt: now,
+                  updatedAt: now,
+                });
+              }
 
-            if (existingGroup) {
-              await groups.updateExpenseGroup({
-                ...existingGroup,
-                name,
-                description: description || null,
-                updatedAt: now,
-              });
-            } else {
-              await groups.addExpenseGroup({
-                name,
-                description: description || null,
-                createdAt: now,
-                updatedAt: now,
-              });
-            }
+              showSuccessToast(
+                existingGroup ? 'Group updated' : 'Group created',
+                `${name} is ready to use.`,
+              );
 
-            if (window.history.length > 1) {
-              navigate(-1);
-            } else {
-              navigate('/app/groups', { replace: true });
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/app/groups', { replace: true });
+              }
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'We could not save the group.';
+              showErrorToast('Group save failed', message);
             }
           }}
           submitLabel={existingGroup ? 'Update Group' : 'Create Group'}

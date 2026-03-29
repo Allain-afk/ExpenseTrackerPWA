@@ -1,12 +1,75 @@
 .summaryCard {
   padding: 1.25rem;
-  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
   color: white;
+  position: relative;
+  overflow: hidden;
 }
 
 .summaryCard h2,
 .summaryCard p {
   margin: 0;
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.summaryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.summaryChevron {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+}
+
+.summaryLabel {
+  margin-top: 1rem !important;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.82rem;
+}
+
+.summaryFooter {
+  margin-top: 1rem;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.summaryName {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.summaryMeta {
+  margin-top: 0.3rem !important;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.88rem;
+}
+
+.summaryTag {
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+  flex-shrink: 0;
 }
 
 .walletList {
@@ -17,4 +80,10 @@
 
 .walletCard {
   padding: 1rem;
+}
+
+.hiddenTag {
+  margin-top: 0.55rem;
+  background: rgba(71, 85, 105, 0.12);
+  color: #475569;
 }

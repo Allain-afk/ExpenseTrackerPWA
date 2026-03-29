@@ -25,7 +25,7 @@ class FakeClient implements DatabaseClient {
 describe('repositories', () => {
   it('maps transactions from sqlite rows into strict app models', async () => {
     const client = new FakeClient();
-    client.responses.set('PRAGMA user_version', [{ user_version: 4 }]);
+    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
     client.responses.set('SELECT * FROM transactions ORDER BY date DESC', [
       {
         id: 10,
@@ -57,7 +57,7 @@ describe('repositories', () => {
 
   it('preserves Flutter wallet delete semantics by nulling walletId before deletion', async () => {
     const client = new FakeClient();
-    client.responses.set('PRAGMA user_version', [{ user_version: 4 }]);
+    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
 
     const repository = createWalletsRepository(client);
     await repository.deleteWallet(12);
@@ -74,7 +74,7 @@ describe('repositories', () => {
 
   it('preserves Flutter group delete semantics by nulling groupId before deletion', async () => {
     const client = new FakeClient();
-    client.responses.set('PRAGMA user_version', [{ user_version: 4 }]);
+    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
 
     const repository = createExpenseGroupsRepository(client);
     await repository.deleteExpenseGroup(7);
@@ -87,5 +87,32 @@ describe('repositories', () => {
       query: 'DELETE FROM expense_groups WHERE id = ?',
       params: [7],
     });
+  });
+
+  it('maps wallet visibility from sqlite rows into app models', async () => {
+    const client = new FakeClient();
+    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
+    client.responses.set('SELECT * FROM wallets', [
+      {
+        id: 3,
+        name: 'BPI Savings',
+        type: 'Bank',
+        colorValue: 16711680,
+        isHidden: 1,
+      },
+    ]);
+
+    const repository = createWalletsRepository(client);
+    const wallets = await repository.getAllWallets();
+
+    expect(wallets).toEqual([
+      {
+        id: 3,
+        name: 'BPI Savings',
+        type: 'Bank',
+        colorValue: 16711680,
+        isHidden: true,
+      },
+    ]);
   });
 });

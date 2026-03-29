@@ -1,21 +1,16 @@
 import { formatMoney } from './format';
+import { dismissAppToast, showWarningToast } from './appToast';
 
 let hasShownLowBalanceNotification = false;
+const LOW_BALANCE_TOAST_ID = 'low-balance-alert';
 
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    return 'denied';
-  }
-
-  if (Notification.permission === 'granted') {
-    return 'granted';
-  }
-
-  return Notification.requestPermission();
+  return 'granted';
 }
 
 export function resetLowBalanceNotificationSession(): void {
   hasShownLowBalanceNotification = false;
+  dismissAppToast(LOW_BALANCE_TOAST_ID);
 }
 
 interface LowBalanceNotificationInput {
@@ -40,28 +35,25 @@ export async function maybeShowLowBalanceNotification(
   } = input;
 
   if (!notificationsEnabled || !userName.trim() || typeof window === 'undefined') {
-    return;
-  }
-
-  if (!('Notification' in window)) {
+    dismissAppToast(LOW_BALANCE_TOAST_ID);
     return;
   }
 
   if (balance > threshold) {
     hasShownLowBalanceNotification = false;
+    dismissAppToast(LOW_BALANCE_TOAST_ID);
     return;
   }
 
-  if (hasShownLowBalanceNotification || Notification.permission !== 'granted') {
+  if (hasShownLowBalanceNotification) {
     return;
   }
 
   const personalizedMessage = message.replaceAll('{name}', userName);
 
-  new Notification('Low Balance Alert!', {
-    body: `${personalizedMessage}\nCurrent balance: ${formatMoney(balance, currencySymbol)}`,
-    icon: '/pwa-192x192.png',
-    badge: '/pwa-192x192.png',
+  showWarningToast('Low balance alert', `${personalizedMessage} Current balance: ${formatMoney(balance, currencySymbol)}`, {
+    duration: 5200,
+    id: LOW_BALANCE_TOAST_ID,
   });
 
   hasShownLowBalanceNotification = true;

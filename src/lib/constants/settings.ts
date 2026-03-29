@@ -10,6 +10,7 @@ export const defaultSettings: Settings = {
     'Hey {name}! Slow down on spending! You are now low on budget. You dumbass!',
   mainWalletName: 'Total Money',
   mainWalletColor: 0xff1f2937,
+  mainWalletHidden: false,
 };
 
 export const availableCurrencies: CurrencyOption[] = [

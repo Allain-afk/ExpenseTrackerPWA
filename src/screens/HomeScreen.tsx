@@ -13,10 +13,11 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useExpenseGroups } from '../hooks/useExpenseGroups';
 import { useWallets } from '../hooks/useWallets';
 import { useSettings } from '../hooks/useSettings';
+import { MainWalletForm } from '../components/forms/MainWalletForm';
+import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { numberToColorHex } from '../lib/utils/format';
 import { formatMoney, formatTransactionCount } from '../lib/utils/format';
 import { formatShortDate } from '../lib/utils/date';
-import { walletColors } from '../lib/constants/settings';
 import { SectionList } from '../components/common/SectionList';
 import { Modal } from '../components/common/Modal';
 import styles from './HomeScreen.module.css';
@@ -39,8 +40,8 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
   const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
   const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
-  const [mainWalletNameDraft, setMainWalletNameDraft] = useState(settings.mainWalletName);
-  const [mainWalletColorDraft, setMainWalletColorDraft] = useState(settings.mainWalletColor);
+  const visibleWallets = wallets.wallets.filter((wallet) => !wallet.isHidden);
+  const hiddenWalletCount = wallets.wallets.length - visibleWallets.length;
 
   const totalWalletBalance = wallets.wallets.reduce((sum, wallet) => {
     return sum + transactions.getWalletBalance(wallet.id!);
@@ -65,8 +66,6 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
   }
 
   function openMainWalletEditor() {
-    setMainWalletNameDraft(settings.mainWalletName);
-    setMainWalletColorDraft(settings.mainWalletColor);
     setIsMainWalletOpen(true);
   }
 
@@ -84,34 +83,38 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
         </header>
 
         <div className="scroll-row">
-          <button
-            className={`${styles.walletCard} app-card`}
-            onClick={openMainWalletEditor}
-            style={{ background: gradientForColor(settings.mainWalletColor), border: 'none' }}
-            type="button"
-          >
-            <div className={styles.walletCardInner}>
-              <div className={styles.walletTopRow}>
-                <span className={styles.walletBadge}>
-                  <MdAccountBalanceWallet size={16} />
-                  All Wallets
-                </span>
-                <span className="overlay-close" style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
-                  <MdArrowOutward size={18} />
-                </span>
-              </div>
-              <p className={styles.walletBalanceLabel}>Available Balance</p>
-              <h2 className={styles.walletBalance}>{formatMoney(mainWalletBalance, currencySymbol)}</h2>
-              <div className={styles.walletFooter}>
-                <div>
-                  <p className={styles.walletName}>{settings.mainWalletName}</p>
-                  <p className={styles.walletHint}>Tap to manage</p>
+          {!settings.mainWalletHidden ? (
+            <button
+              className={`${styles.walletCard} app-card`}
+              onClick={openMainWalletEditor}
+              style={{ background: gradientForColor(settings.mainWalletColor), border: 'none' }}
+              type="button"
+            >
+              <div className={styles.walletCardInner}>
+                <div className={styles.walletTopRow}>
+                  <span className={styles.walletBadge}>
+                    <MdAccountBalanceWallet size={16} />
+                    All Wallets
+                  </span>
+                  <span className="overlay-close" style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                    <MdArrowOutward size={18} />
+                  </span>
+                </div>
+                <p className={styles.walletBalanceLabel}>Available Balance</p>
+                <h2 className={styles.walletBalance}>{formatMoney(mainWalletBalance, currencySymbol)}</h2>
+                <div className={styles.walletFooter}>
+                  <div>
+                    <p className={styles.walletName}>{settings.mainWalletName}</p>
+                    <p className={styles.walletHint}>
+                      {hiddenWalletCount > 0 ? `${hiddenWalletCount} hidden on Home` : 'Tap to manage'}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </button>
+            </button>
+          ) : null}
 
-          {wallets.wallets.map((wallet) => (
+          {visibleWallets.map((wallet) => (
             <button
               className={`${styles.walletCard} app-card`}
               key={wallet.id}
@@ -279,7 +282,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
               </span>
               <span className="inset-item-content">
                 <span className="inset-title">Manage Card</span>
-                <span className="inset-subtitle">Edit the name, type, and color</span>
+                <span className="inset-subtitle">Edit the name, type, color, and visibility</span>
               </span>
             </button>
           </div>
@@ -287,62 +290,35 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
       </Modal>
 
       <Modal
-        description="Update the label and accent color for your combined balance card."
+        description="Update the label, accent color, and visibility for your combined balance card."
         onClose={() => setIsMainWalletOpen(false)}
         open={isMainWalletOpen}
         title="Edit Main Card"
       >
-        <div className="stack-form">
-          <div className="form-field">
-            <label className="field-label" htmlFor="main-wallet-name">
-              Wallet Name
-            </label>
-            <input
-              className="text-input"
-              id="main-wallet-name"
-              onChange={(event) => setMainWalletNameDraft(event.target.value)}
-              value={mainWalletNameDraft}
-            />
-          </div>
-
-          <div>
-            <p className="field-label">Card Color</p>
-            <div className="pill-row" style={{ marginTop: '0.7rem' }}>
-              {walletColors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setMainWalletColorDraft(color)}
-                  style={{
-                    width: '2.9rem',
-                    height: '2.9rem',
-                    borderRadius: '999px',
-                    border: color === mainWalletColorDraft ? '3px solid white' : '1px solid rgba(217,227,240,0.9)',
-                    boxShadow:
-                      color === mainWalletColorDraft
-                        ? `0 0 0 3px ${numberToColorHex(color)}40`
-                        : 'none',
-                    background: numberToColorHex(color),
-                  }}
-                  type="button"
-                />
-              ))}
-            </div>
-          </div>
-
-          <button
-            className="primary-button"
-            onClick={() => {
-              void settings.updateMainWallet({
-                mainWalletName: mainWalletNameDraft.trim() || 'Total Money',
-                mainWalletColor: mainWalletColorDraft,
+        <MainWalletForm
+          initialColor={settings.mainWalletColor}
+          initialHidden={settings.mainWalletHidden}
+          initialName={settings.mainWalletName}
+          onSubmit={async ({ mainWalletColor, mainWalletHidden, mainWalletName }) => {
+            try {
+              await settings.updateMainWallet({
+                mainWalletName,
+                mainWalletColor,
+                mainWalletHidden,
               });
               setIsMainWalletOpen(false);
-            }}
-            type="button"
-          >
-            Save Changes
-          </button>
-        </div>
+              showSuccessToast(
+                'Main card updated',
+                mainWalletHidden
+                  ? `${mainWalletName} is now hidden on Home.`
+                  : `${mainWalletName} is visible on Home.`,
+              );
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'We could not update the main card.';
+              showErrorToast('Main card update failed', message);
+            }
+          }}
+        />
       </Modal>
     </main>
   );

@@ -7,6 +7,7 @@ interface WalletRow {
   name: string;
   type: string;
   colorValue: number;
+  isHidden: number;
 }
 
 function mapWallet(row: WalletRow): Wallet {
@@ -15,6 +16,7 @@ function mapWallet(row: WalletRow): Wallet {
     name: row.name,
     type: row.type,
     colorValue: Number(row.colorValue),
+    isHidden: Boolean(Number(row.isHidden ?? 0)),
   };
 }
 
@@ -23,10 +25,11 @@ export function createWalletsRepository(client: DatabaseClient) {
     async insertWallet(wallet: Wallet): Promise<number> {
       await ensureDatabaseReady();
       await client.sql(
-        'INSERT INTO wallets (name, type, colorValue) VALUES (?, ?, ?)',
+        'INSERT INTO wallets (name, type, colorValue, isHidden) VALUES (?, ?, ?, ?)',
         wallet.name,
         wallet.type,
         wallet.colorValue,
+        wallet.isHidden ? 1 : 0,
       );
       const [row] = await client.sql<{ id: number }>('SELECT last_insert_rowid() AS id');
       return Number(row.id);
@@ -47,10 +50,11 @@ export function createWalletsRepository(client: DatabaseClient) {
     async updateWallet(wallet: Wallet): Promise<void> {
       await ensureDatabaseReady();
       await client.sql(
-        'UPDATE wallets SET name = ?, type = ?, colorValue = ? WHERE id = ?',
+        'UPDATE wallets SET name = ?, type = ?, colorValue = ?, isHidden = ? WHERE id = ?',
         wallet.name,
         wallet.type,
         wallet.colorValue,
+        wallet.isHidden ? 1 : 0,
         wallet.id ?? null,
       );
     },

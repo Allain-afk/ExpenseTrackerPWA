@@ -4,6 +4,7 @@ import { WalletForm } from '../components/forms/WalletForm';
 import { PageHeader } from '../components/common/PageHeader';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { useWallets } from '../hooks/useWallets';
+import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 
 export function WalletFormScreen() {
   const navigate = useNavigate();
@@ -47,22 +48,35 @@ export function WalletFormScreen() {
                 }
               : undefined
           }
-          onSubmit={async ({ colorValue, name, type }) => {
-            if (existingWallet) {
-              await wallets.updateWallet({
-                ...existingWallet,
-                name,
-                type,
-                colorValue,
-              });
-            } else {
-              await wallets.addWallet({ name, type, colorValue });
-            }
+          onSubmit={async ({ colorValue, isHidden, name, type }) => {
+            try {
+              if (existingWallet) {
+                await wallets.updateWallet({
+                  ...existingWallet,
+                  name,
+                  type,
+                  colorValue,
+                  isHidden,
+                });
+              } else {
+                await wallets.addWallet({ name, type, colorValue, isHidden });
+              }
 
-            if (window.history.length > 1) {
-              navigate(-1);
-            } else {
-              navigate('/wallets', { replace: true });
+              showSuccessToast(
+                existingWallet ? 'Card updated' : 'Card added',
+                isHidden
+                  ? `${name} is hidden on Home, but still works everywhere else.`
+                  : `${name} is ready to track transactions.`,
+              );
+
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/wallets', { replace: true });
+              }
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'We could not save the card.';
+              showErrorToast('Card save failed', message);
             }
           }}
           submitLabel={existingWallet ? 'Save Changes' : 'Add Card'}
@@ -74,11 +88,17 @@ export function WalletFormScreen() {
         description="Associated transactions will stay in the database, but they will be unassigned from this card."
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={async () => {
-          if (existingWallet?.id) {
-            await wallets.deleteWallet(existingWallet.id);
+          try {
+            if (existingWallet?.id) {
+              await wallets.deleteWallet(existingWallet.id);
+              showSuccessToast('Card deleted', `${existingWallet.name} was removed.`);
+            }
+            setIsDeleteOpen(false);
+            navigate('/wallets', { replace: true });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'We could not delete the card.';
+            showErrorToast('Card delete failed', message);
           }
-          setIsDeleteOpen(false);
-          navigate('/wallets', { replace: true });
         }}
         open={isDeleteOpen}
         title="Delete Card?"

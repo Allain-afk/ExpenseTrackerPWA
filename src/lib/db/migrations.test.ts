@@ -42,5 +42,6 @@ describe('database migrations', () => {
     expect(client.calls.some((query) => query.includes('ALTER TABLE transactions ADD COLUMN groupId INTEGER'))).toBe(true);
     expect(client.calls.some((query) => query.includes('CREATE TABLE IF NOT EXISTS wallets'))).toBe(true);
     expect(client.calls.some((query) => query.includes('CREATE INDEX IF NOT EXISTS idx_transactions_date'))).toBe(true);
+    expect(client.calls.some((query) => query.includes('ALTER TABLE wallets ADD COLUMN isHidden INTEGER NOT NULL DEFAULT 0'))).toBe(true);
   });
 });

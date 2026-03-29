@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MdAttachMoney,
@@ -12,6 +12,7 @@ import {
 } from 'react-icons/md';
 import { availableCurrencies } from '../lib/constants/settings';
 import { formatMoney } from '../lib/utils/format';
+import { showErrorToast, showInfoToast, showSuccessToast } from '../lib/utils/appToast';
 import { requestNotificationPermission } from '../lib/utils/notifications';
 import { useSettings } from '../hooks/useSettings';
 import { useTransactions } from '../hooks/useTransactions';
@@ -23,43 +24,101 @@ import styles from './SettingsScreen.module.css';
 const versionHistory: Array<{
   version: string;
   title: string;
-  description: string;
+  description: string[];
+  accent: string;
+  badgeBackground: string;
+  surface: string;
   latest?: boolean;
 }> = [
   {
+    version: '1.3.1',
+    title: 'Toast & Card Visibility Update',
+    description: [
+      'Added custom react-hot-toast notifications with a cleaner in-app alert style.',
+      'Added card visibility controls for wallet cards and the default Total Money card.',
+      'Improved Manage Cards and mobile card editor layouts for better readability.',
+    ],
+    accent: '#2563eb',
+    badgeBackground: 'rgba(37, 99, 235, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
     version: '1.3.0',
     title: 'Multi-Wallet & Modern UI',
-    description:
-      '• Introduced Multi-Wallet System with dedicated balances\n• Premium glassmorphic UI overhaul for Dashboard\n• Upgraded Floating Nav Dock\n• Redesigned Settings & Transaction lists',
-    latest: true,
+    description: [
+      'Introduced multi-wallet support with dedicated balances for each card.',
+      'Upgraded the floating navigation dock and refreshed the dashboard presentation.',
+      'Redesigned Settings and Transactions screens with a more modern glassmorphic feel.',
+    ],
+    accent: '#7c3aed',
+    badgeBackground: 'rgba(124, 58, 237, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(245, 243, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
   },
   {
     version: '1.2.0',
     title: 'New user UI/UX functionalities',
-    description:
-      '• Added a notification system for low budget threshold\n• Personalized notifications with user name\n• Customizable notification settings',
+    description: [
+      'Added a notification system for low-budget thresholds.',
+      'Personalized alert messages using the saved user name.',
+      'Added customizable notification settings for message and threshold.',
+    ],
+    accent: '#ea580c',
+    badgeBackground: 'rgba(249, 115, 22, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(255, 247, 237, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
   },
   {
     version: '1.0.3',
     title: 'App Animation Feature (Splash Screen) when opened',
-    description: '• Beautiful animated splash screen\n• Smooth transitions and loading animations',
+    description: [
+      'Added a more polished animated splash screen.',
+      'Improved opening transitions for a smoother first impression.',
+    ],
+    accent: '#06b6d4',
+    badgeBackground: 'rgba(6, 182, 212, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(236, 254, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
   },
   {
     version: '1.0.2',
     title: 'UI and UX Improvements',
-    description:
-      '• Enhanced user interface design\n• Better user experience\n• Performance optimizations',
+    description: [
+      'Enhanced the overall interface design system.',
+      'Improved everyday usability across key screens.',
+      'Included general performance optimizations.',
+    ],
+    accent: '#10b981',
+    badgeBackground: 'rgba(16, 185, 129, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(236, 253, 245, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
   },
   {
     version: '1.0.1',
     title: 'App Icon Update',
-    description: '• New and improved app icon\n• Better visual identity',
+    description: [
+      'Updated the app icon with a cleaner visual identity.',
+      'Improved recognizability on the home screen.',
+    ],
+    accent: '#ec4899',
+    badgeBackground: 'rgba(236, 72, 153, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(253, 242, 248, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
   },
   {
     version: '1.0.0',
     title: 'Basic Features for Expense Tracking',
-    description:
-      '• Core expense tracking functionality\n• Transaction management\n• Basic reporting features',
+    description: [
+      'Launched the core expense tracking experience.',
+      'Added transaction management essentials.',
+      'Included the first set of basic reporting features.',
+    ],
+    accent: '#475569',
+    badgeBackground: 'rgba(71, 85, 105, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
   },
 ] as const;
 
@@ -74,22 +133,89 @@ export function SettingsScreen() {
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [thresholdDraft, setThresholdDraft] = useState(String(settings.lowBalanceThreshold));
   const [messageDraft, setMessageDraft] = useState(settings.notificationMessage);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function toggleNotifications(enabled: boolean) {
-    if (enabled) {
-      await requestNotificationPermission();
-    }
+    try {
+      if (enabled) {
+        await requestNotificationPermission();
+      }
 
-    await settings.updateNotificationSettings({ notificationsEnabled: enabled });
+      await settings.updateNotificationSettings({ notificationsEnabled: enabled });
+      showInfoToast(
+        enabled ? 'Low-balance alerts on' : 'Low-balance alerts off',
+        enabled
+          ? 'You will see an in-app toast when your balance drops below the threshold.'
+          : 'You can re-enable alerts anytime from Settings.',
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'We could not update notification settings.';
+      showErrorToast('Notification update failed', message);
+    }
   }
 
   async function resetAllData() {
-    await settings.resetAllAppData();
-    await transactions.loadTransactions();
-    setStatusMessage('All app data has been reset successfully.');
-    setIsResetOpen(false);
+    try {
+      await settings.resetAllAppData();
+      await transactions.loadTransactions();
+      setIsResetOpen(false);
+      showSuccessToast('All app data reset', 'Your local settings and transactions were cleared.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not reset the app data.';
+      showErrorToast('Reset failed', message);
+    }
+  }
+
+  async function updateCurrencyPreference(currency: (typeof availableCurrencies)[number]) {
+    try {
+      if (currency.code === settings.currency) {
+        setIsCurrencyOpen(false);
+        return;
+      }
+
+      await settings.updateCurrency(currency.code, currency.symbol);
+      setIsCurrencyOpen(false);
+      showSuccessToast('Currency updated', `Now using ${currency.name} (${currency.symbol}).`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not update the currency.';
+      showErrorToast('Currency update failed', message);
+    }
+  }
+
+  async function saveThreshold() {
+    const parsed = Number.parseFloat(thresholdDraft);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      showErrorToast('Invalid threshold', 'Please enter a valid amount.');
+      return;
+    }
+
+    try {
+      await settings.updateNotificationSettings({ lowBalanceThreshold: parsed });
+      setIsThresholdOpen(false);
+      showSuccessToast(
+        'Threshold updated',
+        `Alerts will trigger below ${formatMoney(parsed, settings.currencySymbol)}.`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not save the threshold.';
+      showErrorToast('Threshold update failed', message);
+    }
+  }
+
+  async function saveNotificationMessage() {
+    if (!messageDraft.trim()) {
+      showErrorToast('Message required', 'Please enter a message.');
+      return;
+    }
+
+    try {
+      await settings.updateNotificationSettings({ notificationMessage: messageDraft.trim() });
+      setIsMessageOpen(false);
+      showSuccessToast('Alert message updated', 'Low-balance toasts will use your new message.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not save the message.';
+      showErrorToast('Message update failed', message);
+    }
   }
 
   return (
@@ -101,12 +227,6 @@ export function SettingsScreen() {
             Settings
           </h1>
         </header>
-
-        <div className={styles.statusWrap}>
-          {statusMessage ? <div className="success-banner">{statusMessage}</div> : null}
-          {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
-        </div>
-
         <SectionList headerText="Preferences">
           <button className="inset-item" onClick={() => setIsCurrencyOpen(true)} type="button">
             <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
@@ -147,7 +267,14 @@ export function SettingsScreen() {
           </button>
           {settings.notificationsEnabled ? (
             <>
-              <button className="inset-item" onClick={() => setIsThresholdOpen(true)} type="button">
+              <button
+                className="inset-item"
+                onClick={() => {
+                  setThresholdDraft(String(settings.lowBalanceThreshold));
+                  setIsThresholdOpen(true);
+                }}
+                type="button"
+              >
                 <span className="icon-chip" style={{ background: 'rgba(71,85,105,0.12)', color: '#475569' }}>
                   <MdWallet size={22} />
                 </span>
@@ -158,7 +285,14 @@ export function SettingsScreen() {
                   </span>
                 </span>
               </button>
-              <button className="inset-item" onClick={() => setIsMessageOpen(true)} type="button">
+              <button
+                className="inset-item"
+                onClick={() => {
+                  setMessageDraft(settings.notificationMessage);
+                  setIsMessageOpen(true);
+                }}
+                type="button"
+              >
                 <span className="icon-chip" style={{ background: 'rgba(99,102,241,0.12)', color: '#4338ca' }}>
                   <MdMessage size={22} />
                 </span>
@@ -192,7 +326,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.3.0</span>
+              <span className="inset-subtitle">1.3.1</span>
             </span>
           </button>
           <div className="inset-item">
@@ -220,10 +354,7 @@ export function SettingsScreen() {
               <button
                 className="inset-item"
                 key={currency.code}
-                onClick={() => {
-                  void settings.updateCurrency(currency.code, currency.symbol);
-                  setIsCurrencyOpen(false);
-                }}
+                onClick={() => void updateCurrencyPreference(currency)}
                 type="button"
               >
                 <span className="inset-item-content">
@@ -260,17 +391,7 @@ export function SettingsScreen() {
           </div>
           <button
             className="primary-button"
-            onClick={() => {
-              const parsed = Number.parseFloat(thresholdDraft);
-              if (Number.isNaN(parsed) || parsed < 0) {
-                setErrorMessage('Please enter a valid amount.');
-                return;
-              }
-
-              setErrorMessage(null);
-              void settings.updateNotificationSettings({ lowBalanceThreshold: parsed });
-              setIsThresholdOpen(false);
-            }}
+            onClick={() => void saveThreshold()}
             type="button"
           >
             Save
@@ -298,16 +419,7 @@ export function SettingsScreen() {
           </div>
           <button
             className="primary-button"
-            onClick={() => {
-              if (!messageDraft.trim()) {
-                setErrorMessage('Please enter a message.');
-                return;
-              }
-
-              setErrorMessage(null);
-              void settings.updateNotificationSettings({ notificationMessage: messageDraft.trim() });
-              setIsMessageOpen(false);
-            }}
+            onClick={() => void saveNotificationMessage()}
             type="button"
           >
             Save
@@ -322,16 +434,33 @@ export function SettingsScreen() {
       >
         <div className={styles.versionList}>
           {versionHistory.map((version) => (
-            <details className={styles.versionItem} key={version.version} open={version.latest}>
+            <details
+              className={`${styles.versionItem} ${version.latest ? styles.versionItemLatest : ''}`}
+              key={version.version}
+              open={version.latest}
+              style={
+                {
+                  '--version-accent': version.accent,
+                  '--version-badge-bg': version.badgeBackground,
+                  '--version-surface': version.surface,
+                } as CSSProperties
+              }
+            >
               <summary className={styles.versionSummary}>
-                <div>
+                <div className={styles.versionSummaryCopy}>
+                  <span className={styles.versionPill}>v{version.version}</span>
                   <h3>{version.title}</h3>
-                  <p>
-                    v{version.version} {version.latest ? '• LATEST' : ''}
-                  </p>
+                  <p>{version.latest ? 'Latest release' : 'Release notes'}</p>
                 </div>
+                {version.latest ? <span className={styles.latestPill}>Latest</span> : null}
               </summary>
-              <div className={styles.versionContent}>{version.description}</div>
+              <div className={styles.versionContent}>
+                <ul className={styles.versionBulletList}>
+                  {version.description.map((entry) => (
+                    <li key={entry}>{entry}</li>
+                  ))}
+                </ul>
+              </div>
             </details>
           ))}
         </div>

@@ -1,30 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const toastHooks = vi.hoisted(() => ({
+  dismissAppToast: vi.fn(),
+  showWarningToast: vi.fn(),
+}));
+
+vi.mock('./appToast', () => ({
+  dismissAppToast: toastHooks.dismissAppToast,
+  showWarningToast: toastHooks.showWarningToast,
+}));
+
 import {
   maybeShowLowBalanceNotification,
   resetLowBalanceNotificationSession,
 } from './notifications';
 
-const notifications: Array<{ title: string; options: NotificationOptions }> = [];
-
-class MockNotification {
-  static permission: NotificationPermission = 'granted';
-
-  constructor(title: string, options: NotificationOptions) {
-    notifications.push({ title, options });
-  }
-}
-
 describe('notification helpers', () => {
   beforeEach(() => {
-    notifications.length = 0;
     resetLowBalanceNotificationSession();
-    vi.stubGlobal('Notification', MockNotification);
+    toastHooks.dismissAppToast.mockClear();
+    toastHooks.showWarningToast.mockClear();
   });
 
-  it('shows a low-balance alert once until the balance rises above the threshold again', async () => {
+  it('shows a low-balance toast once until the balance rises above the threshold again', async () => {
     await maybeShowLowBalanceNotification({
       balance: 500,
-      currencySymbol: '₱',
+      currencySymbol: 'PHP',
       threshold: 1000,
       notificationsEnabled: true,
       userName: 'Allain',
@@ -32,7 +33,7 @@ describe('notification helpers', () => {
     });
     await maybeShowLowBalanceNotification({
       balance: 500,
-      currencySymbol: '₱',
+      currencySymbol: 'PHP',
       threshold: 1000,
       notificationsEnabled: true,
       userName: 'Allain',
@@ -40,7 +41,7 @@ describe('notification helpers', () => {
     });
     await maybeShowLowBalanceNotification({
       balance: 1500,
-      currencySymbol: '₱',
+      currencySymbol: 'PHP',
       threshold: 1000,
       notificationsEnabled: true,
       userName: 'Allain',
@@ -48,15 +49,22 @@ describe('notification helpers', () => {
     });
     await maybeShowLowBalanceNotification({
       balance: 400,
-      currencySymbol: '₱',
+      currencySymbol: 'PHP',
       threshold: 1000,
       notificationsEnabled: true,
       userName: 'Allain',
       message: 'Hey {name}!',
     });
 
-    expect(notifications).toHaveLength(2);
-    expect(notifications[0].title).toBe('Low Balance Alert!');
-    expect(notifications[0].options.body).toContain('Hey Allain!');
+    expect(toastHooks.showWarningToast).toHaveBeenCalledTimes(2);
+    expect(toastHooks.showWarningToast).toHaveBeenNthCalledWith(
+      1,
+      'Low balance alert',
+      expect.stringContaining('Hey Allain!'),
+      {
+        duration: 5200,
+        id: 'low-balance-alert',
+      },
+    );
   });
 });
