@@ -12,6 +12,7 @@ export const expenseCategories = [
 
 export const incomeCategories = [
   'Salary',
+  'Allowance',
   'Freelance',
   'Investments',
   'Gifts',
