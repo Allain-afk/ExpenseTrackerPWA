@@ -4,16 +4,22 @@ import { WalletForm } from '../components/forms/WalletForm';
 import { PageHeader } from '../components/common/PageHeader';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { useWallets } from '../hooks/useWallets';
+import { useTransactions } from '../hooks/useTransactions';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 
 export function WalletFormScreen() {
   const navigate = useNavigate();
   const params = useParams();
   const wallets = useWallets();
+  const transactions = useTransactions();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const walletId = params.walletId ? Number(params.walletId) : null;
   const existingWallet = walletId ? wallets.getWalletById(walletId) : undefined;
+  const linkedTransactionCount =
+    existingWallet?.id == null
+      ? 0
+      : transactions.transactions.filter((transaction) => transaction.walletId === existingWallet.id).length;
 
   if (params.walletId && !Number.isFinite(walletId ?? NaN)) {
     return <Navigate replace to="/wallets" />;
@@ -84,14 +90,25 @@ export function WalletFormScreen() {
       </div>
 
       <ConfirmDialog
-        confirmLabel="Delete Card"
-        description="Associated transactions will stay in the database, but they will be unassigned from this card."
+        confirmLabel="Delete Card and Transactions"
+        description={
+          existingWallet
+            ? linkedTransactionCount
+              ? `This will permanently delete ${linkedTransactionCount} transaction${linkedTransactionCount === 1 ? '' : 's'} assigned to ${existingWallet.name} and remove the card itself. This action cannot be undone.`
+              : `This will permanently remove ${existingWallet.name}. There are no transactions currently assigned to this card, and this action cannot be undone.`
+            : ''
+        }
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={async () => {
           try {
             if (existingWallet?.id) {
               await wallets.deleteWallet(existingWallet.id);
-              showSuccessToast('Card deleted', `${existingWallet.name} was removed.`);
+              showSuccessToast(
+                'Card deleted',
+                linkedTransactionCount
+                  ? `${existingWallet.name} and its linked transactions were removed.`
+                  : `${existingWallet.name} was removed.`,
+              );
             }
             setIsDeleteOpen(false);
             navigate('/wallets', { replace: true });
@@ -101,7 +118,7 @@ export function WalletFormScreen() {
           }
         }}
         open={isDeleteOpen}
-        title="Delete Card?"
+        title="Delete Card and Transactions?"
         tone="danger"
       />
     </main>

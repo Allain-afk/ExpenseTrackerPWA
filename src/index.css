@@ -192,7 +192,7 @@ img {
   width: 100%;
   border-radius: 1.125rem;
   border: 1px solid var(--color-border);
-  background: white;
+  background: var(--color-surface);
   color: var(--color-text);
   padding: 0.95rem 1rem;
   transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -238,7 +238,7 @@ img {
   border-radius: 999px;
   padding: 0.7rem 1rem;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-surface-translucent);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
 }
@@ -671,7 +671,7 @@ img {
 }
 
 .app-toast-dismiss:hover {
-  background: white;
+  background: var(--color-surface);
   color: var(--color-text);
 }
 

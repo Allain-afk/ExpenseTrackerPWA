@@ -78,7 +78,7 @@ export function createWalletsRepository(client: DatabaseClient) {
 
     async deleteWallet(id: number): Promise<void> {
       await ensureDatabaseReady();
-      await client.sql('UPDATE transactions SET walletId = NULL WHERE walletId = ?', id);
+      await client.sql('DELETE FROM transactions WHERE walletId = ?', id);
       await client.sql('DELETE FROM wallets WHERE id = ?', id);
     },
   };

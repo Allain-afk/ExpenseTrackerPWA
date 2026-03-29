@@ -33,11 +33,12 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
-    version: '1.4.0',
-    title: 'Themes & Home Card Ordering',
+    version: '1.3.2',
+    title: 'Themes, Ordering & Delete Safeguards',
     description: [
-      'Added app-wide blue, pink, and mint theme presets in Settings.',
+      'Added app-wide blue, pink, mint, and dark theme presets in Settings.',
       'Added drag-and-drop card ordering so Home can follow your preferred card order.',
+      'Deleting a card now also removes its linked transactions and shows a stronger warning first.',
       'Kept the main combined balance card pinned first while wallet cards can be rearranged.',
     ],
     accent: '#db2777',
@@ -369,7 +370,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.4.0</span>
+              <span className="inset-subtitle">1.3.2</span>
             </span>
           </button>
           <div className="inset-item">

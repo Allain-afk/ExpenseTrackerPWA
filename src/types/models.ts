@@ -1,5 +1,5 @@
 export type TransactionType = 'income' | 'expense';
-export type ThemeId = 'blue' | 'pink' | 'mint';
+export type ThemeId = 'blue' | 'pink' | 'mint' | 'dark';
 
 export interface ExpenseTransaction {
   id?: number;
