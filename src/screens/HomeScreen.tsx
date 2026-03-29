@@ -184,7 +184,12 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
             recentTransactions.map((transaction) => {
               return (
                 <div className="inset-item" key={transaction.id}>
-                  <TransactionTypeIcon type={transaction.type} />
+                  <TransactionTypeIcon
+                    dimension="2.35rem"
+                    size={17}
+                    type={transaction.type}
+                    variant="subtle"
+                  />
                   <span className="inset-item-content">
                     <span className="inset-title">{transaction.description}</span>
                     <span className="inset-subtitle">

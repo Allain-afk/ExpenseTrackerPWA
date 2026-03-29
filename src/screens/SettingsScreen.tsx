@@ -33,6 +33,20 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
+    version: '1.3.4',
+    title: 'Home Transaction Visual Balance',
+    description: [
+      'Softened the Home screen Recent Transactions icons with a smaller, less intense plus and minus badge style.',
+      'Kept the stronger transaction badge treatment for quick actions, the Transactions screen, and the Add Transaction flow.',
+      'Improved the visual balance of the Home activity list so recent entries are easier to scan.',
+    ],
+    accent: '#2563eb',
+    badgeBackground: 'rgba(37, 99, 235, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
     version: '1.3.3',
     title: 'Transaction Polish & Daily Tips',
     description: [
@@ -45,7 +59,6 @@ const versionHistory: Array<{
     badgeBackground: 'rgba(15, 118, 110, 0.12)',
     surface:
       'linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
-    latest: true,
   },
   {
     version: '1.3.2',
@@ -384,7 +397,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.3.3</span>
+              <span className="inset-subtitle">1.3.4</span>
             </span>
           </button>
           <div className="inset-item">
