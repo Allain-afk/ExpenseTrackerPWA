@@ -39,7 +39,7 @@ export function TransactionTypeIcon({
   type,
   size = 20,
   dimension = '2.8rem',
-  variant = 'default',
+  variant = 'subtle',
 }: TransactionTypeIconProps) {
   const palette = transactionBadgePalette[type][variant];
   const isSubtle = variant === 'subtle';
@@ -61,7 +61,9 @@ export function TransactionTypeIcon({
         background: `linear-gradient(145deg, ${palette.start} 0%, ${palette.end} 100%)`,
         boxShadow: isSubtle ? `0 7px 14px ${palette.shadow}` : `0 14px 24px ${palette.shadow}`,
         border: isSubtle ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(255,255,255,0.28)',
-        opacity: isSubtle ? 0.9 : 1,
+        opacity: isSubtle ? 0.84 : 1,
+        transform: isSubtle ? 'scale(0.96)' : 'scale(1)',
+        transformOrigin: 'center',
       }}
     >
       <span
@@ -80,7 +82,7 @@ export function TransactionTypeIcon({
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: isSubtle ? 0.92 : 1,
+          opacity: isSubtle ? 0.88 : 1,
         }}
       >
         {type === 'income' ? <MdAdd size={size} /> : <MdRemove size={size} />}

@@ -34,11 +34,11 @@ const versionHistory: Array<{
 }> = [
   {
     version: '1.3.4',
-    title: 'Home Transaction Visual Balance',
+    title: 'Transaction UI Balance & Small Fixes',
     description: [
-      'Softened the Home screen Recent Transactions icons with a smaller, less intense plus and minus badge style.',
-      'Kept the stronger transaction badge treatment for quick actions, the Transactions screen, and the Add Transaction flow.',
-      'Improved the visual balance of the Home activity list so recent entries are easier to scan.',
+      'Softened transaction icons app-wide with a smaller, lower-opacity plus and minus badge style.',
+      'Matched the Add Transaction sticky save button more closely to the main bottom navigation height.',
+      'Fixed the Transaction date card layout so the calendar section and input stay inside the card cleanly.',
     ],
     accent: '#2563eb',
     badgeBackground: 'rgba(37, 99, 235, 0.12)',
