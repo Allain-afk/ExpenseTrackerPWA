@@ -12,6 +12,7 @@ export interface WalletsContextValue {
   loadWallets: () => Promise<Wallet[]>;
   addWallet: (wallet: Wallet) => Promise<number>;
   updateWallet: (wallet: Wallet) => Promise<void>;
+  reorderWallets: (walletIds: number[]) => Promise<void>;
   deleteWallet: (walletId: number) => Promise<void>;
   getWalletById: (walletId: number) => Wallet | undefined;
 }
@@ -41,6 +42,11 @@ export function WalletsProvider({ children }: { children: ReactNode }) {
     await loadWallets();
   }
 
+  async function reorderWallets(walletIds: number[]): Promise<void> {
+    await walletsRepository.saveWalletOrder(walletIds);
+    await loadWallets();
+  }
+
   async function deleteWallet(walletId: number): Promise<void> {
     await walletsRepository.deleteWallet(walletId);
     await loadWallets();
@@ -59,6 +65,7 @@ export function WalletsProvider({ children }: { children: ReactNode }) {
         loadWallets,
         addWallet,
         updateWallet,
+        reorderWallets,
         deleteWallet,
         getWalletById,
       }}

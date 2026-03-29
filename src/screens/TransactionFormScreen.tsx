@@ -270,7 +270,7 @@ export function TransactionFormScreen() {
                 </div>
               ) : (
                 <button className={`inset-item ${styles.inlineInfo}`} onClick={() => setIsWalletModalOpen(true)} type="button">
-                  <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#1d4ed8' }}>
+                  <span className="icon-chip accent-chip">
                     <MdCreditCard size={22} />
                   </span>
                   <span className="inset-item-content">
@@ -283,7 +283,7 @@ export function TransactionFormScreen() {
               )
             ) : selectedWallet ? (
               <div className={styles.inlineInfo}>
-                <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#1d4ed8' }}>
+                <span className="icon-chip accent-chip">
                   <MdCreditCard size={22} />
                 </span>
                 <span className="inset-item-content">
@@ -294,7 +294,7 @@ export function TransactionFormScreen() {
             ) : null}
 
             <button className={`inset-item ${styles.inlineInfo}`} onClick={() => setIsGroupModalOpen(true)} type="button">
-              <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#1d4ed8' }}>
+              <span className="icon-chip accent-chip">
                 <MdFolder size={22} />
               </span>
               <span className="inset-item-content">

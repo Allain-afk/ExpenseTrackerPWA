@@ -50,7 +50,7 @@ export function TransactionsScreen({ currencySymbol }: TransactionsScreenProps) 
             <p className="eyebrow">History</p>
             <h1>Transactions</h1>
           </div>
-          <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#1d4ed8' }}>
+          <span className="icon-chip accent-chip">
             <MdFilterList size={24} />
           </span>
         </header>

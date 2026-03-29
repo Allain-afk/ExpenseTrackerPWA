@@ -30,8 +30,8 @@
   gap: 0.35rem;
   padding: 0.45rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(217, 227, 240, 0.85);
+  background: var(--color-dock-bg);
+  border: 1px solid var(--color-dock-border);
   box-shadow: 0 14px 24px rgba(15, 23, 42, 0.12);
   backdrop-filter: blur(20px);
 }
@@ -50,7 +50,7 @@
 
 .dockButtonActive {
   color: var(--color-primary);
-  background: rgba(37, 99, 235, 0.12);
+  background: var(--color-primary-soft);
 }
 
 .dockLabel {
@@ -62,9 +62,13 @@
   width: 3.25rem;
   height: 3.25rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(
+    135deg,
+    var(--button-primary-start) 0%,
+    var(--button-primary-end) 100%
+  );
   color: white;
-  box-shadow: 0 16px 24px rgba(37, 99, 235, 0.28);
+  box-shadow: var(--shadow-strong);
   display: inline-flex;
   align-items: center;
   justify-content: center;

@@ -25,7 +25,7 @@ class FakeClient implements DatabaseClient {
 describe('repositories', () => {
   it('maps transactions from sqlite rows into strict app models', async () => {
     const client = new FakeClient();
-    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
+    client.responses.set('PRAGMA user_version', [{ user_version: 6 }]);
     client.responses.set('SELECT * FROM transactions ORDER BY date DESC', [
       {
         id: 10,
@@ -57,7 +57,7 @@ describe('repositories', () => {
 
   it('preserves Flutter wallet delete semantics by nulling walletId before deletion', async () => {
     const client = new FakeClient();
-    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
+    client.responses.set('PRAGMA user_version', [{ user_version: 6 }]);
 
     const repository = createWalletsRepository(client);
     await repository.deleteWallet(12);
@@ -74,7 +74,7 @@ describe('repositories', () => {
 
   it('preserves Flutter group delete semantics by nulling groupId before deletion', async () => {
     const client = new FakeClient();
-    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
+    client.responses.set('PRAGMA user_version', [{ user_version: 6 }]);
 
     const repository = createExpenseGroupsRepository(client);
     await repository.deleteExpenseGroup(7);
@@ -91,14 +91,15 @@ describe('repositories', () => {
 
   it('maps wallet visibility from sqlite rows into app models', async () => {
     const client = new FakeClient();
-    client.responses.set('PRAGMA user_version', [{ user_version: 5 }]);
-    client.responses.set('SELECT * FROM wallets', [
+    client.responses.set('PRAGMA user_version', [{ user_version: 6 }]);
+    client.responses.set('SELECT * FROM wallets ORDER BY sortOrder ASC, id ASC', [
       {
         id: 3,
         name: 'BPI Savings',
         type: 'Bank',
         colorValue: 16711680,
         isHidden: 1,
+        sortOrder: 2,
       },
     ]);
 
@@ -112,7 +113,51 @@ describe('repositories', () => {
         type: 'Bank',
         colorValue: 16711680,
         isHidden: true,
+        sortOrder: 2,
       },
     ]);
+  });
+
+  it('appends new wallets to the end of the saved order', async () => {
+    const client = new FakeClient();
+    client.responses.set('PRAGMA user_version', [{ user_version: 6 }]);
+    client.responses.set('SELECT COALESCE(MAX(sortOrder), -1) + 1 AS nextSortOrder FROM wallets', [
+      { nextSortOrder: 4 },
+    ]);
+    client.responses.set('SELECT last_insert_rowid() AS id', [{ id: 9 }]);
+
+    const repository = createWalletsRepository(client);
+    await repository.insertWallet({
+      name: 'GCash',
+      type: 'E-Wallet',
+      colorValue: 1234,
+      isHidden: false,
+    });
+
+    expect(client.calls).toContainEqual({
+      query: 'INSERT INTO wallets (name, type, colorValue, isHidden, sortOrder) VALUES (?, ?, ?, ?, ?)',
+      params: ['GCash', 'E-Wallet', 1234, 0, 4],
+    });
+  });
+
+  it('persists reordered wallet positions', async () => {
+    const client = new FakeClient();
+    client.responses.set('PRAGMA user_version', [{ user_version: 6 }]);
+
+    const repository = createWalletsRepository(client);
+    await repository.saveWalletOrder([5, 2, 9]);
+
+    expect(client.calls).toContainEqual({
+      query: 'UPDATE wallets SET sortOrder = ? WHERE id = ?',
+      params: [0, 5],
+    });
+    expect(client.calls).toContainEqual({
+      query: 'UPDATE wallets SET sortOrder = ? WHERE id = ?',
+      params: [1, 2],
+    });
+    expect(client.calls).toContainEqual({
+      query: 'UPDATE wallets SET sortOrder = ? WHERE id = ?',
+      params: [2, 9],
+    });
   });
 });

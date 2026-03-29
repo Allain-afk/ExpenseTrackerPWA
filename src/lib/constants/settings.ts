@@ -1,4 +1,5 @@
 import type { CurrencyOption, Settings } from '../../types/models';
+import { defaultThemeId } from './themes';
 
 export const defaultSettings: Settings = {
   currency: 'PHP',
@@ -11,6 +12,7 @@ export const defaultSettings: Settings = {
   mainWalletName: 'Total Money',
   mainWalletColor: 0xff1f2937,
   mainWalletHidden: false,
+  themeId: defaultThemeId,
 };
 
 export const availableCurrencies: CurrencyOption[] = [

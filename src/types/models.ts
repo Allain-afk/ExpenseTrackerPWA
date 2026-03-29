@@ -1,4 +1,5 @@
 export type TransactionType = 'income' | 'expense';
+export type ThemeId = 'blue' | 'pink' | 'mint';
 
 export interface ExpenseTransaction {
   id?: number;
@@ -26,6 +27,7 @@ export interface Wallet {
   type: string;
   colorValue: number;
   isHidden: boolean;
+  sortOrder?: number;
 }
 
 export interface Settings {
@@ -38,6 +40,7 @@ export interface Settings {
   mainWalletName: string;
   mainWalletColor: number;
   mainWalletHidden: boolean;
+  themeId: ThemeId;
 }
 
 export interface CurrencyOption {

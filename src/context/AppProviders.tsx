@@ -5,6 +5,8 @@ import { WalletsProvider } from './WalletsContext';
 import { ExpenseGroupsProvider } from './ExpenseGroupsContext';
 import { AppBootstrapProvider } from './AppBootstrapContext';
 import { maybeShowLowBalanceNotification } from '../lib/utils/notifications';
+import { defaultThemeId } from '../lib/constants/themes';
+import { applyThemeToDocument } from '../lib/utils/theme';
 
 function NotificationCoordinator() {
   const settingsContext = useContext(SettingsContext);
@@ -41,9 +43,21 @@ function NotificationCoordinator() {
   return null;
 }
 
+function ThemeCoordinator() {
+  const settingsContext = useContext(SettingsContext);
+  const themeId = settingsContext?.themeId ?? defaultThemeId;
+
+  useEffect(() => {
+    applyThemeToDocument(themeId);
+  }, [themeId]);
+
+  return null;
+}
+
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <SettingsProvider>
+      <ThemeCoordinator />
       <TransactionsProvider>
         <WalletsProvider>
           <ExpenseGroupsProvider>

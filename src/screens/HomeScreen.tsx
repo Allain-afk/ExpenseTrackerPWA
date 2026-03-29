@@ -148,8 +148,8 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
           <Link className={`app-card ${styles.addTile}`} to="/wallets/new">
             <span
-              className="icon-chip"
-              style={{ width: '3.4rem', height: '3.4rem', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white' }}
+              className="icon-chip accent-chip-solid"
+              style={{ width: '3.4rem', height: '3.4rem' }}
             >
               <MdAddCard size={28} />
             </span>
@@ -168,10 +168,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
               const transactionCount = groups.getGroupTransactions(group.id!).length;
               return (
                 <Link className="inset-item" key={group.id} to={`/groups/${group.id}`}>
-                  <span
-                    className="icon-chip"
-                    style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}
-                  >
+                  <span className="icon-chip accent-chip">
                     <MdFolder size={22} />
                   </span>
                   <span className="inset-item-content">
@@ -277,7 +274,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
               }}
               type="button"
             >
-              <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+              <span className="icon-chip accent-chip">
                 <MdCreditCard size={24} />
               </span>
               <span className="inset-item-content">

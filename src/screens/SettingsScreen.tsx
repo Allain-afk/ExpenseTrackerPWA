@@ -7,10 +7,12 @@ import {
   MdInfoOutline,
   MdMessage,
   MdNotificationsActive,
+  MdPalette,
   MdPersonOutline,
   MdWallet,
 } from 'react-icons/md';
 import { availableCurrencies } from '../lib/constants/settings';
+import { getThemePreset, themeOptions } from '../lib/constants/themes';
 import { formatMoney } from '../lib/utils/format';
 import { showErrorToast, showInfoToast, showSuccessToast } from '../lib/utils/appToast';
 import { requestNotificationPermission } from '../lib/utils/notifications';
@@ -31,6 +33,20 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
+    version: '1.4.0',
+    title: 'Themes & Home Card Ordering',
+    description: [
+      'Added app-wide blue, pink, and mint theme presets in Settings.',
+      'Added drag-and-drop card ordering so Home can follow your preferred card order.',
+      'Kept the main combined balance card pinned first while wallet cards can be rearranged.',
+    ],
+    accent: '#db2777',
+    badgeBackground: 'rgba(219, 39, 119, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(255, 244, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
     version: '1.3.1',
     title: 'Toast & Card Visibility Update',
     description: [
@@ -42,7 +58,6 @@ const versionHistory: Array<{
     badgeBackground: 'rgba(37, 99, 235, 0.12)',
     surface:
       'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
-    latest: true,
   },
   {
     version: '1.3.0',
@@ -127,12 +142,14 @@ export function SettingsScreen() {
   const transactions = useTransactions();
 
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isThresholdOpen, setIsThresholdOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [isVersionOpen, setIsVersionOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [thresholdDraft, setThresholdDraft] = useState(String(settings.lowBalanceThreshold));
   const [messageDraft, setMessageDraft] = useState(settings.notificationMessage);
+  const activeTheme = getThemePreset(settings.themeId);
 
   async function toggleNotifications(enabled: boolean) {
     try {
@@ -179,6 +196,23 @@ export function SettingsScreen() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'We could not update the currency.';
       showErrorToast('Currency update failed', message);
+    }
+  }
+
+  async function updateThemePreference(themeId: (typeof themeOptions)[number]['id']) {
+    try {
+      if (themeId === settings.themeId) {
+        setIsThemeOpen(false);
+        return;
+      }
+
+      const theme = getThemePreset(themeId);
+      await settings.updateTheme(themeId);
+      setIsThemeOpen(false);
+      showSuccessToast('Theme updated', `${theme.label} is now active.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not update the theme.';
+      showErrorToast('Theme update failed', message);
     }
   }
 
@@ -239,16 +273,25 @@ export function SettingsScreen() {
               </span>
             </span>
           </button>
+          <button className="inset-item" onClick={() => setIsThemeOpen(true)} type="button">
+            <span className="icon-chip accent-chip">
+              <MdPalette size={22} />
+            </span>
+            <span className="inset-item-content">
+              <span className="inset-title">Themes</span>
+              <span className="inset-subtitle">{activeTheme.label}</span>
+            </span>
+          </button>
         </SectionList>
 
         <SectionList headerText="Cards & Wallets">
           <Link className="inset-item" to="/wallets">
-            <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+            <span className="icon-chip accent-chip">
               <MdCreditCard size={22} />
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Manage Cards</span>
-              <span className="inset-subtitle">Add, edit, or remove wallets</span>
+              <span className="inset-subtitle">Add, edit, reorder, or remove wallets</span>
             </span>
           </Link>
         </SectionList>
@@ -321,12 +364,12 @@ export function SettingsScreen() {
 
         <SectionList headerText="About">
           <button className="inset-item" onClick={() => setIsVersionOpen(true)} type="button">
-            <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+            <span className="icon-chip accent-chip">
               <MdInfoOutline size={22} />
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.3.1</span>
+              <span className="inset-subtitle">1.4.0</span>
             </span>
           </button>
           <div className="inset-item">
@@ -364,6 +407,41 @@ export function SettingsScreen() {
                   </span>
                 </span>
                 {isSelected ? <span className="tag tag-blue">Selected</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      </Modal>
+
+      <Modal
+        description="Pick the visual style used across the app."
+        onClose={() => setIsThemeOpen(false)}
+        open={isThemeOpen}
+        title="Choose Theme"
+      >
+        <div className={styles.themeGrid}>
+          {themeOptions.map((theme) => {
+            const isSelected = theme.id === settings.themeId;
+
+            return (
+              <button
+                className={`${styles.themeCard} ${isSelected ? styles.themeCardSelected : ''}`}
+                key={theme.id}
+                onClick={() => void updateThemePreference(theme.id)}
+                type="button"
+              >
+                <div className={styles.themePreview} aria-hidden="true">
+                  {theme.preview.map((color) => (
+                    <span className={styles.themeSwatch} key={color} style={{ background: color }} />
+                  ))}
+                </div>
+                <div className={styles.themeCardBody}>
+                  <div className={styles.themeCardHeader}>
+                    <strong>{theme.label}</strong>
+                    {isSelected ? <span className="tag tag-blue">Active</span> : null}
+                  </div>
+                  <p>{theme.description}</p>
+                </div>
               </button>
             );
           })}

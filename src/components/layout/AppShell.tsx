@@ -110,7 +110,7 @@ export function AppShell() {
       >
         <div className="stack-form">
           <Link className="inset-item" onClick={() => setIsAddSheetOpen(false)} to="/transactions/new">
-            <span className="icon-chip" style={{ background: 'rgba(37, 99, 235, 0.1)', color: '#1d4ed8' }}>
+            <span className="icon-chip accent-chip">
               <MdAdd size={24} />
             </span>
             <span className="inset-item-content">
@@ -138,10 +138,7 @@ export function AppShell() {
                   onClick={() => setIsAddSheetOpen(false)}
                   to={`/transactions/new?groupId=${group.id}`}
                 >
-                  <span
-                    className="icon-chip"
-                    style={{ background: 'rgba(37, 99, 235, 0.1)', color: '#1d4ed8' }}
-                  >
+                  <span className="icon-chip accent-chip">
                     <MdFolder size={22} />
                   </span>
                   <span className="inset-item-content">

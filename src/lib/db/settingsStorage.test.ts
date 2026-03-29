@@ -66,6 +66,7 @@ describe('settings storage', () => {
       currencySymbol: '$',
       mainWalletName: 'Pocket Money',
       mainWalletHidden: false,
+      themeId: defaultSettings.themeId,
     });
   });
 });

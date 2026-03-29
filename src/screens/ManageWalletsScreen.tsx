@@ -1,6 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { MdAccountBalanceWallet, MdAdd, MdChevronRight, MdCreditCard, MdVisibilityOff } from 'react-icons/md';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  MdAccountBalanceWallet,
+  MdAdd,
+  MdChevronRight,
+  MdCreditCard,
+  MdDragIndicator,
+  MdEdit,
+  MdVisibilityOff,
+} from 'react-icons/md';
 import { useWallets } from '../hooks/useWallets';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
@@ -9,24 +35,155 @@ import { Modal } from '../components/common/Modal';
 import { MainWalletForm } from '../components/forms/MainWalletForm';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { formatMoney, numberToColorHex } from '../lib/utils/format';
+import type { Wallet } from '../types/models';
 import styles from './ManageWalletsScreen.module.css';
+
+interface SortableWalletRowProps {
+  wallet: Wallet;
+  balanceLabel: string;
+}
+
+function SortableWalletRow({ wallet, balanceLabel }: SortableWalletRowProps) {
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: wallet.id! });
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      className={`app-card ${styles.walletCard} ${isDragging ? styles.walletCardDragging : ''}`}
+      ref={setNodeRef}
+      style={style}
+    >
+      <div className={styles.walletRow}>
+        <div className={styles.walletIdentity}>
+          <span
+            className="icon-chip"
+            style={{ background: numberToColorHex(wallet.colorValue), color: 'white' }}
+          >
+            <MdCreditCard size={22} />
+          </span>
+          <div className={styles.walletCopy}>
+            <h3>{wallet.name}</h3>
+            <p>{wallet.type}</p>
+            {wallet.isHidden ? (
+              <span className={`tag ${styles.hiddenTag}`}>
+                <MdVisibilityOff size={13} />
+                Hidden on Home
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className={styles.walletSide}>
+          <strong className={styles.balanceValue}>{balanceLabel}</strong>
+          <div className={styles.walletActions}>
+            <Link
+              aria-label={`Edit ${wallet.name}`}
+              className={styles.iconActionButton}
+              to={`/wallets/${wallet.id}/edit`}
+            >
+              <MdEdit size={18} />
+            </Link>
+            <button
+              {...attributes}
+              {...listeners}
+              aria-label={`Reorder ${wallet.name}`}
+              className={styles.iconActionButton}
+              ref={setActivatorNodeRef}
+              type="button"
+            >
+              <MdDragIndicator size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ManageWalletsScreen() {
   const wallets = useWallets();
   const transactions = useTransactions();
   const settings = useSettings();
   const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
+  const [orderedWallets, setOrderedWallets] = useState(wallets.wallets);
+
+  useEffect(() => {
+    setOrderedWallets(wallets.wallets);
+  }, [wallets.wallets]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 160, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const sortableWalletIds = useMemo(
+    () =>
+      orderedWallets
+        .map((wallet) => wallet.id)
+        .filter((walletId): walletId is number => typeof walletId === 'number'),
+    [orderedWallets],
+  );
 
   const totalBalance = wallets.wallets.reduce((sum, wallet) => {
     return sum + transactions.getWalletBalance(wallet.id!);
   }, 0);
-  const mainWalletBalance =
-    wallets.wallets.length === 0 ? transactions.balance : totalBalance;
+  const mainWalletBalance = wallets.wallets.length === 0 ? transactions.balance : totalBalance;
   const cardCount = wallets.wallets.length + 1;
   const hiddenCount =
     wallets.wallets.filter((wallet) => wallet.isHidden).length +
     (settings.mainWalletHidden ? 1 : 0);
   const mainCardGradient = `linear-gradient(135deg, ${numberToColorHex(settings.mainWalletColor)} 0%, rgba(255,255,255,0.24) 180%)`;
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = orderedWallets.findIndex((wallet) => wallet.id === active.id);
+    const newIndex = orderedWallets.findIndex((wallet) => wallet.id === over.id);
+
+    if (oldIndex < 0 || newIndex < 0) {
+      return;
+    }
+
+    const nextWallets = arrayMove(orderedWallets, oldIndex, newIndex);
+    const walletIds = nextWallets
+      .map((wallet) => wallet.id)
+      .filter((walletId): walletId is number => typeof walletId === 'number');
+
+    setOrderedWallets(nextWallets);
+
+    try {
+      await wallets.reorderWallets(walletIds);
+      showSuccessToast('Card order updated', 'Home will use your new card order.');
+    } catch (error) {
+      setOrderedWallets(wallets.wallets);
+      const message =
+        error instanceof Error ? error.message : 'We could not save the new card order.';
+      showErrorToast('Card order update failed', message);
+    }
+  }
 
   return (
     <main className="app-page">
@@ -78,40 +235,37 @@ export function ManageWalletsScreen() {
           </div>
         </button>
 
-        <div className={styles.walletList}>
-          {wallets.wallets.map((wallet) => (
-            <Link className={`app-card ${styles.walletCard}`} key={wallet.id} to={`/wallets/${wallet.id}/edit`}>
-              <div className="row-spread">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                  <span
-                    className="icon-chip"
-                    style={{ background: numberToColorHex(wallet.colorValue), color: 'white' }}
-                  >
-                    <MdCreditCard size={22} />
-                  </span>
-                  <div>
-                    <h3 style={{ margin: 0 }}>{wallet.name}</h3>
-                    <p className="helper-text" style={{ marginTop: '0.35rem' }}>
-                      {wallet.type}
-                    </p>
-                    {wallet.isHidden ? (
-                      <span className={`tag ${styles.hiddenTag}`}>
-                        <MdVisibilityOff size={13} />
-                        Hidden on Home
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <strong>{formatMoney(transactions.getWalletBalance(wallet.id!), settings.currencySymbol)}</strong>
-                  <MdChevronRight className="muted" size={22} />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {orderedWallets.length ? (
+          <>
+            <div className={styles.dragHint}>
+              <p className="eyebrow">Home Card Order</p>
+              <p className={styles.dragHelper}>
+                Drag a handle to change which wallet card appears first on Home.
+              </p>
+            </div>
 
-        {wallets.wallets.length === 0 ? (
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => void handleDragEnd(event)}
+              sensors={sensors}
+            >
+              <SortableContext items={sortableWalletIds} strategy={verticalListSortingStrategy}>
+                <div className={styles.walletList}>
+                  {orderedWallets.map((wallet) => (
+                    <SortableWalletRow
+                      balanceLabel={formatMoney(
+                        transactions.getWalletBalance(wallet.id!),
+                        settings.currencySymbol,
+                      )}
+                      key={wallet.id}
+                      wallet={wallet}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
+        ) : (
           <div className="app-card empty-state">
             <h3>No additional cards yet</h3>
             <p>Your main card is ready. Add another card to separate balances by account.</p>
@@ -120,7 +274,7 @@ export function ManageWalletsScreen() {
               Add Card
             </Link>
           </div>
-        ) : null}
+        )}
       </div>
 
       <Modal

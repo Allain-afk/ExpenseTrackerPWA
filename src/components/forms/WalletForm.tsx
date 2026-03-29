@@ -145,9 +145,11 @@ export function WalletForm({
               justifyContent: 'center',
               gap: '0.45rem',
               minHeight: '3.25rem',
-              background: isHidden ? 'rgba(37, 99, 235, 0.1)' : 'white',
-              color: isHidden ? '#2563eb' : '#1e293b',
-              border: isHidden ? '1px solid rgba(37, 99, 235, 0.22)' : '1px solid rgba(217, 227, 240, 0.9)',
+              background: isHidden ? 'var(--color-primary-soft)' : 'var(--color-surface)',
+              color: isHidden ? 'var(--color-primary)' : 'var(--color-text)',
+              border: isHidden
+                ? '1px solid var(--color-primary-border)'
+                : '1px solid var(--color-border)',
             }}
             type="button"
           >

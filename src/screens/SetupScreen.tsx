@@ -94,7 +94,7 @@ export function SetupScreen() {
                 Your Name
               </label>
               <div className="row-spread" style={{ gap: '0.75rem' }}>
-                <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}>
+                <span className="icon-chip accent-chip">
                   <MdPerson size={22} />
                 </span>
                 <input

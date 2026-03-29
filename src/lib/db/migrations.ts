@@ -1,6 +1,6 @@
 import type { DatabaseClient } from './types';
 
-export const databaseVersion = 5;
+export const databaseVersion = 6;
 
 async function getUserVersion(client: DatabaseClient): Promise<number> {
   const [result] = await client.sql<{ user_version: number }>('PRAGMA user_version');
@@ -87,7 +87,19 @@ async function migrateToV5(client: DatabaseClient): Promise<void> {
   }
 }
 
-const migrations = [migrateToV1, migrateToV2, migrateToV3, migrateToV4, migrateToV5];
+async function migrateToV6(client: DatabaseClient): Promise<void> {
+  if (!(await columnExists(client, 'wallets', 'sortOrder'))) {
+    await client.sql('ALTER TABLE wallets ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0');
+  }
+
+  const walletIds = await client.sql<{ id: number }>('SELECT id FROM wallets ORDER BY id ASC');
+
+  for (const [index, wallet] of walletIds.entries()) {
+    await client.sql('UPDATE wallets SET sortOrder = ? WHERE id = ?', index, Number(wallet.id));
+  }
+}
+
+const migrations = [migrateToV1, migrateToV2, migrateToV3, migrateToV4, migrateToV5, migrateToV6];
 
 export async function applyMigrations(client: DatabaseClient): Promise<void> {
   let currentVersion = await getUserVersion(client);

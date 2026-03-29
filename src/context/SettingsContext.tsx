@@ -3,7 +3,7 @@ import { createSettingsStorage } from '../lib/db/settingsStorage';
 import { defaultSettings } from '../lib/constants/settings';
 import { createTransactionsRepository } from '../lib/db/repositories/transactionsRepository';
 import { databaseClient } from '../lib/db/client';
-import type { Settings } from '../types/models';
+import type { Settings, ThemeId } from '../types/models';
 
 const settingsStorage = createSettingsStorage(window.localStorage);
 const transactionsRepository = createTransactionsRepository(databaseClient);
@@ -19,10 +19,12 @@ export interface SettingsContextValue {
   mainWalletName: string;
   mainWalletColor: number;
   mainWalletHidden: boolean;
+  themeId: ThemeId;
   isSetupComplete: boolean;
   isLoaded: boolean;
   loadSettings: () => Promise<Settings>;
   updateCurrency: (currency: string, currencySymbol: string) => Promise<void>;
+  updateTheme: (themeId: ThemeId) => Promise<void>;
   resetSettings: () => Promise<void>;
   updateMainWallet: (input: {
     mainWalletName?: string;
@@ -78,6 +80,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   async function resetSettings(): Promise<void> {
     settingsStorage.saveSettings(defaultSettings);
     setSettings(defaultSettings);
+  }
+
+  async function updateTheme(themeId: ThemeId): Promise<void> {
+    await persistSettings({
+      ...settings,
+      themeId,
+    });
   }
 
   async function updateMainWallet(input: {
@@ -146,10 +155,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         mainWalletName: settings.mainWalletName,
         mainWalletColor: settings.mainWalletColor,
         mainWalletHidden: settings.mainWalletHidden,
+        themeId: settings.themeId,
         isSetupComplete,
         isLoaded,
         loadSettings,
         updateCurrency,
+        updateTheme,
         resetSettings,
         updateMainWallet,
         updateUserSettings,

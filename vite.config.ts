@@ -2,11 +2,13 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import sqlocal from 'sqlocal/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { defaultThemeId, getThemePreset } from './src/lib/constants/themes';
 
 const crossOriginHeaders = {
   'Cross-Origin-Embedder-Policy': 'require-corp',
   'Cross-Origin-Opener-Policy': 'same-origin',
 };
+const defaultTheme = getThemePreset(defaultThemeId);
 
 export default defineConfig({
   plugins: [
@@ -19,8 +21,8 @@ export default defineConfig({
         name: 'Expense Tracker PWA',
         short_name: 'ExpenseTracker',
         description: 'Offline-first expense tracking with groups, cards, and alerts.',
-        theme_color: '#2563EB',
-        background_color: '#F4F7FB',
+        theme_color: defaultTheme.tokens.themeColor,
+        background_color: defaultTheme.tokens.backgroundMid,
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

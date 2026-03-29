@@ -38,8 +38,7 @@ export function GroupsScreen({ currencySymbol }: GroupsScreenProps) {
             {groups.map((group) => (
               <div className="inset-item" key={group.id}>
                 <Link
-                  className="icon-chip"
-                  style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}
+                  className="icon-chip accent-chip"
                   to={`/groups/${group.id}`}
                 >
                   <MdFolder size={22} />
