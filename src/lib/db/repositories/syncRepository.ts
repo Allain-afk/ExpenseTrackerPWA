@@ -159,6 +159,39 @@ export function createSyncRepository(client: DatabaseClient) {
       };
     },
 
+    async getWalletRowsForUser(userId: string): Promise<SyncWalletRow[]> {
+      await ensureDatabaseReady();
+      return client.sql<SyncWalletRow>(
+        `SELECT *
+         FROM wallets
+         WHERE user_id = ?
+         ORDER BY last_modified ASC, id ASC`,
+        userId,
+      );
+    },
+
+    async getExpenseGroupRowsForUser(userId: string): Promise<SyncExpenseGroupRow[]> {
+      await ensureDatabaseReady();
+      return client.sql<SyncExpenseGroupRow>(
+        `SELECT *
+         FROM expense_groups
+         WHERE user_id = ?
+         ORDER BY last_modified ASC, id ASC`,
+        userId,
+      );
+    },
+
+    async getTransactionRowsForUser(userId: string): Promise<SyncTransactionRow[]> {
+      await ensureDatabaseReady();
+      return client.sql<SyncTransactionRow>(
+        `SELECT *
+         FROM transactions
+         WHERE user_id = ?
+         ORDER BY last_modified ASC, id ASC`,
+        userId,
+      );
+    },
+
     async markRowsSynced(tableName: SyncTableName, userId: string, uuids: string[]): Promise<void> {
       await ensureDatabaseReady();
 

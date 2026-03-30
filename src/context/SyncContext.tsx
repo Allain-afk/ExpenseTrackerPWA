@@ -24,6 +24,10 @@ import {
   showSuccessToast,
   showWarningToast,
 } from '../lib/utils/appToast';
+import { useExpenseGroups } from '../hooks/useExpenseGroups';
+import { useSettings } from '../hooks/useSettings';
+import { useTransactions } from '../hooks/useTransactions';
+import { useWallets } from '../hooks/useWallets';
 
 export type SyncStatus = 'idle' | 'offline' | 'syncing' | 'success' | 'error';
 
@@ -33,6 +37,7 @@ interface SyncNowOptions {
 
 interface SyncRunSummary {
   pendingCount: number;
+  pulledCount: number;
 }
 
 export interface SyncContextValue {
@@ -61,6 +66,31 @@ function toMillis(value: string | null | undefined): number {
 
 function isRemoteNewer(remoteLastModified: string | null | undefined, localLastModified: string): boolean {
   return toMillis(remoteLastModified) > toMillis(localLastModified);
+}
+
+function getSupabaseDisplayName(input: unknown): string {
+  if (!input || typeof input !== 'object') {
+    return '';
+  }
+
+  const metadata = input as Record<string, unknown>;
+  const displayName = metadata.display_name;
+  const fullName = metadata.full_name;
+  const name = metadata.name;
+
+  if (typeof displayName === 'string' && displayName.trim()) {
+    return displayName.trim();
+  }
+
+  if (typeof fullName === 'string' && fullName.trim()) {
+    return fullName.trim();
+  }
+
+  if (typeof name === 'string' && name.trim()) {
+    return name.trim();
+  }
+
+  return '';
 }
 
 function normalizeWalletRemoteRow(row: Record<string, unknown>): SyncWalletRow | null {
@@ -165,11 +195,53 @@ function toTransactionRemotePayload(row: SyncTransactionRow) {
 
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { user, isConfigured } = useAuth();
+  const settings = useSettings();
+  const transactions = useTransactions();
+  const wallets = useWallets();
+  const expenseGroups = useExpenseGroups();
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [status, setStatus] = useState<SyncStatus>(() => (navigator.onLine ? 'idle' : 'offline'));
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const isSyncingRef = useRef(false);
+  const pendingDisplayNameHydrationRef = useRef<string | null>(null);
+
+  const fetchAllRemoteRows = useCallback(async (
+    userId: string,
+    tableName: SyncTableName,
+  ): Promise<Array<Record<string, unknown>>> => {
+    if (!supabase) {
+      return [];
+    }
+
+    const pageSize = 1000;
+    let offset = 0;
+    const allRows: Array<Record<string, unknown>> = [];
+
+    while (true) {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('user_id', userId)
+        .order('last_modified', { ascending: true })
+        .range(offset, offset + pageSize - 1);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const chunk = (data ?? []) as Array<Record<string, unknown>>;
+      allRows.push(...chunk);
+
+      if (chunk.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+
+    return allRows;
+  }, []);
 
   const syncTableRows = useCallback(async (
     userId: string,
@@ -288,8 +360,72 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     await syncTableRows(userId, 'expense_groups', pending.expenseGroups);
     await syncTableRows(userId, 'transactions', pending.transactions);
 
-    return { pendingCount };
-  }, [syncTableRows]);
+    const [
+      remoteWalletRows,
+      remoteExpenseGroupRows,
+      remoteTransactionRows,
+      localWalletRows,
+      localExpenseGroupRows,
+      localTransactionRows,
+    ] = await Promise.all([
+      fetchAllRemoteRows(userId, 'wallets'),
+      fetchAllRemoteRows(userId, 'expense_groups'),
+      fetchAllRemoteRows(userId, 'transactions'),
+      syncRepository.getWalletRowsForUser(userId),
+      syncRepository.getExpenseGroupRowsForUser(userId),
+      syncRepository.getTransactionRowsForUser(userId),
+    ]);
+
+    const localWalletMap = new Map(localWalletRows.map((row) => [row.uuid, row]));
+    const localExpenseGroupMap = new Map(localExpenseGroupRows.map((row) => [row.uuid, row]));
+    const localTransactionMap = new Map(localTransactionRows.map((row) => [row.uuid, row]));
+
+    let pulledCount = 0;
+
+    for (const row of remoteWalletRows) {
+      const normalized = normalizeWalletRemoteRow(row);
+      if (!normalized) {
+        continue;
+      }
+
+      const localRow = localWalletMap.get(normalized.uuid);
+      if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
+        await syncRepository.upsertWalletFromRemote(normalized);
+        pulledCount += 1;
+      }
+    }
+
+    for (const row of remoteExpenseGroupRows) {
+      const normalized = normalizeGroupRemoteRow(row);
+      if (!normalized) {
+        continue;
+      }
+
+      const localRow = localExpenseGroupMap.get(normalized.uuid);
+      if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
+        await syncRepository.upsertExpenseGroupFromRemote(normalized);
+        pulledCount += 1;
+      }
+    }
+
+    for (const row of remoteTransactionRows) {
+      const normalized = normalizeTransactionRemoteRow(row);
+      if (!normalized) {
+        continue;
+      }
+
+      const localRow = localTransactionMap.get(normalized.uuid);
+      if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
+        await syncRepository.upsertTransactionFromRemote(normalized);
+        pulledCount += 1;
+      }
+    }
+
+    return {
+      pendingCount,
+      pulledCount,
+    };
+  }, [fetchAllRemoteRows, syncTableRows]);
 
   const syncNow = useCallback(async (options?: SyncNowOptions): Promise<void> => {
     if (!isConfigured || !supabase) {
@@ -318,10 +454,19 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     try {
       const summary = await runSync(user.id);
+
+      if (summary.pendingCount > 0 || summary.pulledCount > 0) {
+        await Promise.all([
+          wallets.loadWallets(),
+          expenseGroups.loadExpenseGroups(),
+          transactions.loadTransactions(),
+        ]);
+      }
+
       setStatus('success');
       setLastSyncedAt(new Date());
       if (!options?.silent) {
-        if (summary.pendingCount === 0) {
+        if (summary.pendingCount === 0 && summary.pulledCount === 0) {
           const anonymousRows = await syncRepository.getAnonymousOwnershipCount();
           if (anonymousRows > 0) {
             showInfoToast(
@@ -331,8 +476,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           } else {
             showInfoToast('Already up to date', 'No eligible changes were found for cloud sync.');
           }
+        } else if (summary.pendingCount === 0 && summary.pulledCount > 0) {
+          const noun = summary.pulledCount === 1 ? 'change' : 'changes';
+          showSuccessToast('Cloud data restored', `Imported ${summary.pulledCount} ${noun} to this device.`);
         } else {
-          showSuccessToast('Sync complete', 'Your latest local changes are backed up.');
+          showSuccessToast('Sync complete', 'Your local and cloud changes are merged.');
         }
       }
     } catch (error) {
@@ -345,7 +493,52 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     } finally {
       isSyncingRef.current = false;
     }
-  }, [isConfigured, runSync, user?.id]);
+  }, [expenseGroups, isConfigured, runSync, transactions, user?.id, wallets]);
+
+  useEffect(() => {
+    pendingDisplayNameHydrationRef.current = null;
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!settings.isLoaded || !user) {
+      return;
+    }
+
+    if (settings.userName.trim()) {
+      return;
+    }
+
+    const displayName = getSupabaseDisplayName(user.user_metadata);
+    if (!displayName) {
+      return;
+    }
+
+    if (pendingDisplayNameHydrationRef.current === displayName) {
+      return;
+    }
+
+    pendingDisplayNameHydrationRef.current = displayName;
+
+    void settings
+      .updateUserSettings({
+        userName: displayName,
+        notificationsEnabled: settings.notificationsEnabled,
+        lowBalanceThreshold: settings.lowBalanceThreshold,
+        notificationMessage: settings.notificationMessage,
+      })
+      .catch(() => {
+        // Keep this silent because sync hydration should not block user flows.
+        pendingDisplayNameHydrationRef.current = null;
+      });
+  }, [
+    settings,
+    settings.isLoaded,
+    settings.lowBalanceThreshold,
+    settings.notificationMessage,
+    settings.notificationsEnabled,
+    settings.userName,
+    user,
+  ]);
 
   useEffect(() => {
     const handleOnline = () => {
