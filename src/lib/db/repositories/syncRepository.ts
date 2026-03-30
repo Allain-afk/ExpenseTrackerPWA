@@ -1,6 +1,6 @@
 import { ensureDatabaseReady } from '../client';
 import type { DatabaseClient } from '../types';
-import { toIsoTimestamp } from '../../utils/date';
+import { fromSqliteTimestamp, toIsoTimestamp, toSqliteTimestamp } from '../../utils/date';
 
 export type SyncTableName = 'transactions' | 'wallets' | 'expense_groups';
 
@@ -57,6 +57,10 @@ interface CountResultRow {
 
 function isoNow(): string {
   return toIsoTimestamp();
+}
+
+function normalizeToSqliteTimestamp(value: string): string {
+  return toSqliteTimestamp(fromSqliteTimestamp(value));
 }
 
 async function countRowsWithNullUser(client: DatabaseClient, tableName: SyncTableName): Promise<number> {
@@ -276,6 +280,8 @@ export function createSyncRepository(client: DatabaseClient) {
 
     async upsertExpenseGroupFromRemote(row: SyncExpenseGroupRow): Promise<void> {
       await ensureDatabaseReady();
+      const createdAt = normalizeToSqliteTimestamp(row.createdAt);
+      const updatedAt = normalizeToSqliteTimestamp(row.updatedAt);
       await client.sql(
         `INSERT INTO expense_groups (
           name,
@@ -298,8 +304,8 @@ export function createSyncRepository(client: DatabaseClient) {
           last_modified = excluded.last_modified`,
         row.name,
         row.description,
-        row.createdAt,
-        row.updatedAt,
+        createdAt,
+        updatedAt,
         row.uuid,
         row.user_id,
         row.last_modified,
@@ -308,6 +314,7 @@ export function createSyncRepository(client: DatabaseClient) {
 
     async upsertTransactionFromRemote(row: SyncTransactionRow): Promise<void> {
       await ensureDatabaseReady();
+      const transactionDate = normalizeToSqliteTimestamp(row.date);
       await client.sql(
         `INSERT INTO transactions (
           amount,
@@ -339,7 +346,7 @@ export function createSyncRepository(client: DatabaseClient) {
         row.amount,
         row.category,
         row.description,
-        row.date,
+        transactionDate,
         row.type,
         row.imagePath,
         row.groupId,
