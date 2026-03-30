@@ -385,9 +385,17 @@ export function SettingsScreen() {
       if (authMode === 'signin') {
         await auth.signInWithPassword(authEmail.trim(), authPassword);
         if (onboardingName) {
-          await auth.syncDisplayName(onboardingName);
+          void auth.syncDisplayName(onboardingName).catch(() => {
+            // Do not block sign-in success if profile metadata sync fails.
+          });
         }
-        showSuccessToast('Signed in', 'Cloud backup is now available.');
+        showSuccessToast('Signed in', 'Cloud backup is now available. Restarting app...');
+        setAuthPassword('');
+        setIsAuthOpen(false);
+        window.setTimeout(() => {
+          window.location.replace('/');
+        }, 120);
+        return;
       } else {
         await auth.signUpWithPassword(authEmail.trim(), authPassword, onboardingName || undefined);
         showSuccessToast('Account created', 'Check your inbox if email confirmation is required.');
