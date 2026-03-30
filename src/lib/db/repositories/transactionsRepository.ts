@@ -1,7 +1,12 @@
 import { ensureDatabaseReady } from '../client';
 import type { DatabaseClient } from '../types';
 import type { ExpenseTransaction, TransactionType } from '../../../types/models';
-import { fromSqliteTimestamp, toSqliteTimestamp } from '../../utils/date';
+import {
+  fromIsoTimestamp,
+  fromSqliteTimestamp,
+  toIsoTimestamp,
+  toSqliteTimestamp,
+} from '../../utils/date';
 
 interface TransactionRow {
   id: number;
@@ -13,6 +18,10 @@ interface TransactionRow {
   imagePath: string | null;
   groupId: number | null;
   walletId: number | null;
+  uuid: string | null;
+  user_id: string | null;
+  is_synced: number;
+  last_modified: string | null;
 }
 
 function mapTransaction(row: TransactionRow): ExpenseTransaction {
@@ -26,6 +35,10 @@ function mapTransaction(row: TransactionRow): ExpenseTransaction {
     imagePath: row.imagePath,
     groupId: row.groupId,
     walletId: row.walletId,
+    uuid: row.uuid ?? undefined,
+    userId: row.user_id,
+    isSynced: Boolean(Number(row.is_synced ?? 0)),
+    lastModified: fromIsoTimestamp(row.last_modified),
   };
 }
 
@@ -46,10 +59,30 @@ export function createTransactionsRepository(client: DatabaseClient) {
   return {
     async insertTransaction(transaction: ExpenseTransaction): Promise<number> {
       await ensureDatabaseReady();
+      const transactionUuid = transaction.uuid ?? crypto.randomUUID();
+      const lastModified = toIsoTimestamp();
+
       await client.sql(
-        `INSERT INTO transactions (amount, category, description, date, type, imagePath, groupId, walletId)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO transactions (
+          amount,
+          category,
+          description,
+          date,
+          type,
+          imagePath,
+          groupId,
+          walletId,
+          uuid,
+          user_id,
+          is_synced,
+          last_modified
+        )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ...transactionToParams(transaction),
+        transactionUuid,
+        transaction.userId ?? null,
+        0,
+        lastModified,
       );
       const [row] = await client.sql<{ id: number }>('SELECT last_insert_rowid() AS id');
       return Number(row.id);
@@ -91,11 +124,26 @@ export function createTransactionsRepository(client: DatabaseClient) {
 
     async updateTransaction(transaction: ExpenseTransaction): Promise<void> {
       await ensureDatabaseReady();
+      const lastModified = toIsoTimestamp();
+      const transactionUuid = transaction.uuid ?? crypto.randomUUID();
+
       await client.sql(
         `UPDATE transactions
-         SET amount = ?, category = ?, description = ?, date = ?, type = ?, imagePath = ?, groupId = ?, walletId = ?
+         SET amount = ?,
+             category = ?,
+             description = ?,
+             date = ?,
+             type = ?,
+             imagePath = ?,
+             groupId = ?,
+             walletId = ?,
+             uuid = COALESCE(uuid, ?),
+             is_synced = 0,
+             last_modified = ?
          WHERE id = ?`,
         ...transactionToParams(transaction),
+        transactionUuid,
+        lastModified,
         transaction.id ?? null,
       );
     },

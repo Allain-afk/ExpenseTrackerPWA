@@ -3,6 +3,7 @@ import { createWalletsRepository } from '../lib/db/repositories/walletsRepositor
 import { databaseClient } from '../lib/db/client';
 import type { Wallet } from '../types/models';
 import { TransactionsContext } from './TransactionsContext';
+import { AuthContext } from './AuthContext';
 
 const walletsRepository = createWalletsRepository(databaseClient);
 
@@ -20,6 +21,7 @@ export interface WalletsContextValue {
 export const WalletsContext = createContext<WalletsContextValue | null>(null);
 
 export function WalletsProvider({ children }: { children: ReactNode }) {
+  const authContext = useContext(AuthContext);
   const transactionsContext = useContext(TransactionsContext);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -32,7 +34,12 @@ export function WalletsProvider({ children }: { children: ReactNode }) {
   }
 
   async function addWallet(wallet: Wallet): Promise<number> {
-    const id = await walletsRepository.insertWallet(wallet);
+    const ownedWallet: Wallet = {
+      ...wallet,
+      userId: authContext?.user?.id ?? wallet.userId ?? null,
+    };
+
+    const id = await walletsRepository.insertWallet(ownedWallet);
     await loadWallets();
     return id;
   }

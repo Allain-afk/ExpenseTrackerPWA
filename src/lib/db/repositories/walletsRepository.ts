@@ -1,6 +1,7 @@
 import { ensureDatabaseReady } from '../client';
 import type { DatabaseClient } from '../types';
 import type { Wallet } from '../../../types/models';
+import { fromIsoTimestamp, toIsoTimestamp } from '../../utils/date';
 
 interface WalletRow {
   id: number;
@@ -9,6 +10,10 @@ interface WalletRow {
   colorValue: number;
   isHidden: number;
   sortOrder: number;
+  uuid: string | null;
+  user_id: string | null;
+  is_synced: number;
+  last_modified: string | null;
 }
 
 function mapWallet(row: WalletRow): Wallet {
@@ -19,6 +24,10 @@ function mapWallet(row: WalletRow): Wallet {
     colorValue: Number(row.colorValue),
     isHidden: Boolean(Number(row.isHidden ?? 0)),
     sortOrder: Number(row.sortOrder ?? 0),
+    uuid: row.uuid ?? undefined,
+    userId: row.user_id,
+    isSynced: Boolean(Number(row.is_synced ?? 0)),
+    lastModified: fromIsoTimestamp(row.last_modified),
   };
 }
 
@@ -26,17 +35,33 @@ export function createWalletsRepository(client: DatabaseClient) {
   return {
     async insertWallet(wallet: Wallet): Promise<number> {
       await ensureDatabaseReady();
+      const walletUuid = wallet.uuid ?? crypto.randomUUID();
+      const lastModified = toIsoTimestamp();
       const [sortOrderRow] = await client.sql<{ nextSortOrder: number }>(
         'SELECT COALESCE(MAX(sortOrder), -1) + 1 AS nextSortOrder FROM wallets',
       );
 
       await client.sql(
-        'INSERT INTO wallets (name, type, colorValue, isHidden, sortOrder) VALUES (?, ?, ?, ?, ?)',
+        `INSERT INTO wallets (
+          name,
+          type,
+          colorValue,
+          isHidden,
+          sortOrder,
+          uuid,
+          user_id,
+          is_synced,
+          last_modified
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         wallet.name,
         wallet.type,
         wallet.colorValue,
         wallet.isHidden ? 1 : 0,
         Number(sortOrderRow?.nextSortOrder ?? 0),
+        walletUuid,
+        wallet.userId ?? null,
+        0,
+        lastModified,
       );
       const [row] = await client.sql<{ id: number }>('SELECT last_insert_rowid() AS id');
       return Number(row.id);
@@ -58,12 +83,25 @@ export function createWalletsRepository(client: DatabaseClient) {
 
     async updateWallet(wallet: Wallet): Promise<void> {
       await ensureDatabaseReady();
+      const lastModified = toIsoTimestamp();
+      const walletUuid = wallet.uuid ?? crypto.randomUUID();
+
       await client.sql(
-        'UPDATE wallets SET name = ?, type = ?, colorValue = ?, isHidden = ? WHERE id = ?',
+        `UPDATE wallets
+         SET name = ?,
+             type = ?,
+             colorValue = ?,
+             isHidden = ?,
+             uuid = COALESCE(uuid, ?),
+             is_synced = 0,
+             last_modified = ?
+         WHERE id = ?`,
         wallet.name,
         wallet.type,
         wallet.colorValue,
         wallet.isHidden ? 1 : 0,
+        walletUuid,
+        lastModified,
         wallet.id ?? null,
       );
     },
@@ -72,7 +110,16 @@ export function createWalletsRepository(client: DatabaseClient) {
       await ensureDatabaseReady();
 
       for (const [index, walletId] of walletIds.entries()) {
-        await client.sql('UPDATE wallets SET sortOrder = ? WHERE id = ?', index, walletId);
+        await client.sql(
+          `UPDATE wallets
+           SET sortOrder = ?,
+               is_synced = 0,
+               last_modified = ?
+           WHERE id = ?`,
+          index,
+          toIsoTimestamp(),
+          walletId,
+        );
       }
     },
 

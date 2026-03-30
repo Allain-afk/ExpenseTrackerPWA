@@ -4,6 +4,8 @@ import { TransactionsProvider, TransactionsContext } from './TransactionsContext
 import { WalletsProvider } from './WalletsContext';
 import { ExpenseGroupsProvider } from './ExpenseGroupsContext';
 import { AppBootstrapProvider } from './AppBootstrapContext';
+import { AuthProvider } from './AuthContext';
+import { SyncProvider } from './SyncContext';
 import { maybeShowLowBalanceNotification } from '../lib/utils/notifications';
 import { defaultThemeId } from '../lib/constants/themes';
 import { applyThemeToDocument } from '../lib/utils/theme';
@@ -56,18 +58,22 @@ function ThemeCoordinator() {
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <SettingsProvider>
-      <ThemeCoordinator />
-      <TransactionsProvider>
-        <WalletsProvider>
-          <ExpenseGroupsProvider>
-            <AppBootstrapProvider>
-              <NotificationCoordinator />
-              {children}
-            </AppBootstrapProvider>
-          </ExpenseGroupsProvider>
-        </WalletsProvider>
-      </TransactionsProvider>
-    </SettingsProvider>
+    <AuthProvider>
+      <SettingsProvider>
+        <ThemeCoordinator />
+        <TransactionsProvider>
+          <WalletsProvider>
+            <ExpenseGroupsProvider>
+              <AppBootstrapProvider>
+                <SyncProvider>
+                  <NotificationCoordinator />
+                  {children}
+                </SyncProvider>
+              </AppBootstrapProvider>
+            </ExpenseGroupsProvider>
+          </WalletsProvider>
+        </TransactionsProvider>
+      </SettingsProvider>
+    </AuthProvider>
   );
 }

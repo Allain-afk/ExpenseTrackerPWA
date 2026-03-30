@@ -3,6 +3,7 @@ import { createExpenseGroupsRepository } from '../lib/db/repositories/expenseGro
 import { databaseClient } from '../lib/db/client';
 import type { ExpenseGroup, ExpenseTransaction } from '../types/models';
 import { TransactionsContext } from './TransactionsContext';
+import { AuthContext } from './AuthContext';
 
 const expenseGroupsRepository = createExpenseGroupsRepository(databaseClient);
 
@@ -24,6 +25,7 @@ export interface ExpenseGroupsContextValue {
 export const ExpenseGroupsContext = createContext<ExpenseGroupsContextValue | null>(null);
 
 export function ExpenseGroupsProvider({ children }: { children: ReactNode }) {
+  const authContext = useContext(AuthContext);
   const transactionsContext = useContext(TransactionsContext);
   const [groups, setGroups] = useState<ExpenseGroup[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -63,7 +65,12 @@ export function ExpenseGroupsProvider({ children }: { children: ReactNode }) {
   }
 
   async function addExpenseGroup(group: ExpenseGroup): Promise<number> {
-    const id = await expenseGroupsRepository.insertExpenseGroup(group);
+    const ownedGroup: ExpenseGroup = {
+      ...group,
+      userId: authContext?.user?.id ?? group.userId ?? null,
+    };
+
+    const id = await expenseGroupsRepository.insertExpenseGroup(ownedGroup);
     await loadExpenseGroups();
     return id;
   }

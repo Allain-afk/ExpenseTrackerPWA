@@ -1,7 +1,14 @@
 export type TransactionType = 'income' | 'expense';
 export type ThemeId = 'blue' | 'pink' | 'mint' | 'dark';
 
-export interface ExpenseTransaction {
+export interface SyncMetadata {
+  uuid?: string;
+  userId?: string | null;
+  isSynced?: boolean;
+  lastModified?: Date | null;
+}
+
+export interface ExpenseTransaction extends SyncMetadata {
   id?: number;
   amount: number;
   category: string;
@@ -13,7 +20,7 @@ export interface ExpenseTransaction {
   walletId?: number | null;
 }
 
-export interface ExpenseGroup {
+export interface ExpenseGroup extends SyncMetadata {
   id?: number;
   name: string;
   description?: string | null;
@@ -21,7 +28,7 @@ export interface ExpenseGroup {
   updatedAt: Date;
 }
 
-export interface Wallet {
+export interface Wallet extends SyncMetadata {
   id?: number;
   name: string;
   type: string;

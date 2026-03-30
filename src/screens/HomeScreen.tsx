@@ -19,6 +19,7 @@ import { formatShortDate } from '../lib/utils/date';
 import { moneySavingTips } from '../lib/constants/moneySavingTips';
 import { SectionList } from '../components/common/SectionList';
 import { Modal } from '../components/common/Modal';
+import { SyncStatusIcon } from '../components/common/SyncStatusIcon';
 import styles from './HomeScreen.module.css';
 
 interface HomeScreenProps {
@@ -76,9 +77,12 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
             <p className="muted">Welcome back,</p>
             <h1>{settings.userName || 'User'}</h1>
           </div>
-          <button className="overlay-close" onClick={() => void refreshHome()} type="button">
-            <MdRefresh size={20} />
-          </button>
+          <div className="inline-actions" style={{ gap: '0.55rem' }}>
+            <SyncStatusIcon />
+            <button className="overlay-close" onClick={() => void refreshHome()} type="button">
+              <MdRefresh size={20} />
+            </button>
+          </div>
         </header>
 
         <div className="scroll-row">

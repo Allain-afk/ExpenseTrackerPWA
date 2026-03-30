@@ -1,7 +1,10 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MdAttachMoney,
+  MdCloud,
+  MdCloudOff,
+  MdCloudSync,
   MdCreditCard,
   MdDeleteForever,
   MdInfoOutline,
@@ -16,12 +19,40 @@ import { getThemePreset, themeOptions } from '../lib/constants/themes';
 import { formatMoney } from '../lib/utils/format';
 import { showErrorToast, showInfoToast, showSuccessToast } from '../lib/utils/appToast';
 import { requestNotificationPermission } from '../lib/utils/notifications';
+import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
+import { useSync } from '../hooks/useSync';
 import { useTransactions } from '../hooks/useTransactions';
 import { SectionList } from '../components/common/SectionList';
 import { Modal } from '../components/common/Modal';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { SyncStatusIcon } from '../components/common/SyncStatusIcon';
 import styles from './SettingsScreen.module.css';
+
+function getSupabaseDisplayName(input: unknown): string {
+  if (!input || typeof input !== 'object') {
+    return '';
+  }
+
+  const metadata = input as Record<string, unknown>;
+  const displayName = metadata.display_name;
+  const fullName = metadata.full_name;
+  const name = metadata.name;
+
+  if (typeof displayName === 'string' && displayName.trim()) {
+    return displayName.trim();
+  }
+
+  if (typeof fullName === 'string' && fullName.trim()) {
+    return fullName.trim();
+  }
+
+  if (typeof name === 'string' && name.trim()) {
+    return name.trim();
+  }
+
+  return '';
+}
 
 const versionHistory: Array<{
   version: string;
@@ -168,6 +199,14 @@ const versionHistory: Array<{
 export function SettingsScreen() {
   const settings = useSettings();
   const transactions = useTransactions();
+  const auth = useAuth();
+  const {
+    adoptAnonymousRowsForUser,
+    getAnonymousLocalRowsCount,
+    isOnline,
+    status,
+    syncNow,
+  } = useSync();
 
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
@@ -175,9 +214,57 @@ export function SettingsScreen() {
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [isVersionOpen, setIsVersionOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [anonymousRowsCount, setAnonymousRowsCount] = useState(0);
+  const [isAdoptingRows, setIsAdoptingRows] = useState(false);
   const [thresholdDraft, setThresholdDraft] = useState(String(settings.lowBalanceThreshold));
   const [messageDraft, setMessageDraft] = useState(settings.notificationMessage);
   const activeTheme = getThemePreset(settings.themeId);
+  const currentUserId = auth.user?.id ?? null;
+  const onboardingName = settings.userName.trim();
+
+  useEffect(() => {
+    if (!auth.user || !onboardingName) {
+      return;
+    }
+
+    const currentDisplayName = getSupabaseDisplayName(auth.user.user_metadata);
+    if (currentDisplayName === onboardingName) {
+      return;
+    }
+
+    void auth.syncDisplayName(onboardingName).catch(() => {
+      // Keep this silent to avoid noisy toasts on app load.
+    });
+  }, [auth, onboardingName]);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void getAnonymousLocalRowsCount()
+      .then((count) => {
+        if (!cancelled) {
+          setAnonymousRowsCount(count);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAnonymousRowsCount(0);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserId, getAnonymousLocalRowsCount]);
 
   async function toggleNotifications(enabled: boolean) {
     try {
@@ -280,15 +367,186 @@ export function SettingsScreen() {
     }
   }
 
+  function openAuthModal(mode: 'signin' | 'signup') {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+    auth.clearAuthError();
+  }
+
+  async function submitAuth(): Promise<void> {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      showErrorToast('Missing credentials', 'Email and password are required.');
+      return;
+    }
+
+    setIsAuthSubmitting(true);
+
+    try {
+      if (authMode === 'signin') {
+        await auth.signInWithPassword(authEmail.trim(), authPassword);
+        if (onboardingName) {
+          await auth.syncDisplayName(onboardingName);
+        }
+        showSuccessToast('Signed in', 'Cloud backup is now available.');
+      } else {
+        await auth.signUpWithPassword(authEmail.trim(), authPassword, onboardingName || undefined);
+        showSuccessToast('Account created', 'Check your inbox if email confirmation is required.');
+      }
+
+      setAuthPassword('');
+      setIsAuthOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Authentication failed.';
+      showErrorToast('Authentication failed', message);
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  }
+
+  async function signOutCloud(): Promise<void> {
+    try {
+      await auth.signOut();
+      setAnonymousRowsCount(0);
+      showInfoToast('Signed out', 'Local mode is still active on this device.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not sign out.';
+      showErrorToast('Sign out failed', message);
+    }
+  }
+
+  async function linkLocalRowsToAccount(): Promise<void> {
+    if (!auth.user) {
+      return;
+    }
+
+    setIsAdoptingRows(true);
+
+    try {
+      await adoptAnonymousRowsForUser(auth.user.id);
+      const remainingRows = await getAnonymousLocalRowsCount();
+      setAnonymousRowsCount(remainingRows);
+      showSuccessToast('Local rows linked', 'Existing local data is now attached to your account.');
+      await syncNow();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to link local rows.';
+      showErrorToast('Link local rows failed', message);
+    } finally {
+      setIsAdoptingRows(false);
+    }
+  }
+
   return (
     <main className="app-page">
       <div className="page-content">
         <header>
-          <p className="eyebrow">Preferences</p>
-          <h1 style={{ margin: '0.35rem 0 0', fontSize: '1.85rem', letterSpacing: '-0.06em' }}>
-            Settings
-          </h1>
+          <div className="row-spread" style={{ alignItems: 'flex-start' }}>
+            <div>
+              <p className="eyebrow">Preferences</p>
+              <h1 style={{ margin: '0.35rem 0 0', fontSize: '1.85rem', letterSpacing: '-0.06em' }}>
+                Settings
+              </h1>
+            </div>
+            <SyncStatusIcon />
+          </div>
         </header>
+
+        <SectionList headerText="Cloud Backup">
+          {!auth.isConfigured ? (
+            <div className="inset-item">
+              <span className="icon-chip" style={{ background: 'rgba(71,85,105,0.12)', color: '#475569' }}>
+                <MdCloudOff size={22} />
+              </span>
+              <span className="inset-item-content">
+                <span className="inset-title">Cloud sync unavailable</span>
+                <span className="inset-subtitle">
+                  Add VITE_SUPABASE_URL and either VITE_SUPABASE_PUBLISHABLE_KEY or
+                  VITE_SUPABASE_ANON_KEY to enable account backup.
+                </span>
+              </span>
+            </div>
+          ) : null}
+
+          {auth.isConfigured && !auth.user ? (
+            <>
+              <button className="inset-item" onClick={() => openAuthModal('signin')} type="button">
+                <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+                  <MdCloud size={22} />
+                </span>
+                <span className="inset-item-content">
+                  <span className="inset-title">Sign in for cloud backup</span>
+                  <span className="inset-subtitle">Keep offline-first mode and sync with your account.</span>
+                </span>
+              </button>
+              <button className="inset-item" onClick={() => openAuthModal('signup')} type="button">
+                <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
+                  <MdCloudSync size={22} />
+                </span>
+                <span className="inset-item-content">
+                  <span className="inset-title">Create cloud account</span>
+                  <span className="inset-subtitle">Use email + password to secure cloud backup.</span>
+                </span>
+              </button>
+            </>
+          ) : null}
+
+          {auth.isConfigured && auth.user ? (
+            <>
+              <div className="inset-item">
+                <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
+                  <MdCloud size={22} />
+                </span>
+                <span className="inset-item-content">
+                  <span className="inset-title">Connected as {auth.user.email ?? 'account user'}</span>
+                  <span className="inset-subtitle">
+                    {isOnline
+                      ? status === 'syncing'
+                        ? 'Syncing changes now...'
+                        : 'Online and ready to sync.'
+                      : 'Offline. Changes are queued locally.'}
+                  </span>
+                </span>
+              </div>
+
+              {anonymousRowsCount > 0 ? (
+                <button className="inset-item" disabled={isAdoptingRows} onClick={() => void linkLocalRowsToAccount()} type="button">
+                  <span className="icon-chip" style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb' }}>
+                    <MdCloudSync size={22} />
+                  </span>
+                  <span className="inset-item-content">
+                    <span className="inset-title">
+                      {isAdoptingRows
+                        ? 'Linking local rows...'
+                        : `Link ${anonymousRowsCount} local row${anonymousRowsCount > 1 ? 's' : ''}`}
+                    </span>
+                    <span className="inset-subtitle">
+                      Assign existing local data to this account, then sync to cloud backup.
+                    </span>
+                  </span>
+                </button>
+              ) : null}
+
+              <button className="inset-item" onClick={() => void syncNow()} type="button">
+                <span className="icon-chip accent-chip">
+                  <MdCloudSync size={22} />
+                </span>
+                <span className="inset-item-content">
+                  <span className="inset-title">Sync now</span>
+                  <span className="inset-subtitle">Push unsynced local changes to your account.</span>
+                </span>
+              </button>
+
+              <button className="inset-item" onClick={() => void signOutCloud()} type="button">
+                <span className="icon-chip" style={{ background: 'rgba(249,115,22,0.12)', color: '#ea580c' }}>
+                  <MdPersonOutline size={22} />
+                </span>
+                <span className="inset-item-content">
+                  <span className="inset-title">Sign out cloud account</span>
+                  <span className="inset-subtitle">Local data remains available on this device.</span>
+                </span>
+              </button>
+            </>
+          ) : null}
+        </SectionList>
         <SectionList headerText="Preferences">
           <button className="inset-item" onClick={() => setIsCurrencyOpen(true)} type="button">
             <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
@@ -581,6 +839,69 @@ export function SettingsScreen() {
         title="Reset All App Data"
         tone="danger"
       />
+
+      <Modal
+        description={
+          authMode === 'signin'
+            ? 'Sign in to link this device and enable optional cloud backup.'
+            : 'Create your account to enable optional cloud backup.'
+        }
+        onClose={() => setIsAuthOpen(false)}
+        open={isAuthOpen}
+        title={authMode === 'signin' ? 'Sign In' : 'Create Account'}
+      >
+        <div className="stack-form">
+          <div className="form-field">
+            <label className="field-label" htmlFor="auth-email-input">
+              Email
+            </label>
+            <input
+              autoComplete="email"
+              className="text-input"
+              id="auth-email-input"
+              onChange={(event) => setAuthEmail(event.target.value)}
+              type="email"
+              value={authEmail}
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="field-label" htmlFor="auth-password-input">
+              Password
+            </label>
+            <input
+              autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
+              className="text-input"
+              id="auth-password-input"
+              onChange={(event) => setAuthPassword(event.target.value)}
+              type="password"
+              value={authPassword}
+            />
+          </div>
+
+          {auth.authError ? <p className="error-text">{auth.authError}</p> : null}
+
+          <div className="inline-actions">
+            <button className="secondary-button" onClick={() => setIsAuthOpen(false)} type="button">
+              Cancel
+            </button>
+            <button
+              className="primary-button"
+              disabled={isAuthSubmitting}
+              onClick={() => void submitAuth()}
+              type="button"
+            >
+              {isAuthSubmitting
+                ? authMode === 'signin'
+                  ? 'Signing in...'
+                  : 'Creating...'
+                : authMode === 'signin'
+                  ? 'Sign In'
+                  : 'Create Account'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </main>
   );
 }

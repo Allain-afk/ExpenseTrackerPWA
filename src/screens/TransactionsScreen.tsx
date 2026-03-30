@@ -9,6 +9,7 @@ import { formatGroupedDate } from '../lib/utils/date';
 import { formatMoney } from '../lib/utils/format';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { SectionList } from '../components/common/SectionList';
+import { SyncStatusIcon } from '../components/common/SyncStatusIcon';
 import styles from './ListScreen.module.css';
 
 interface TransactionsScreenProps {
@@ -51,9 +52,12 @@ export function TransactionsScreen({ currencySymbol }: TransactionsScreenProps) 
             <p className="eyebrow">History</p>
             <h1>Transactions</h1>
           </div>
-          <span className="icon-chip accent-chip">
-            <MdFilterList size={24} />
-          </span>
+          <div className="inline-actions" style={{ gap: '0.6rem' }}>
+            <SyncStatusIcon />
+            <span className="icon-chip accent-chip">
+              <MdFilterList size={24} />
+            </span>
+          </div>
         </header>
 
         <div className="pill-row">

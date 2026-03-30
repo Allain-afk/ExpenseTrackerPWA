@@ -13,6 +13,7 @@ import { GroupFormScreen } from './screens/GroupFormScreen';
 import { WalletFormScreen } from './screens/WalletFormScreen';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { AppToaster } from './components/common/AppToaster';
+import { SyncAdoptionModal } from './components/common/SyncAdoptionModal';
 
 function BootstrapBoundary({
   children,
@@ -152,6 +153,7 @@ export default function App() {
     <AppProviders>
       <BrowserRouter>
         <AppRoutes />
+        <SyncAdoptionModal />
         <PwaInstallPrompt />
         <AppToaster />
       </BrowserRouter>

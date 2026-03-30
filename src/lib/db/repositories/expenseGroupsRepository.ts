@@ -1,7 +1,12 @@
 import { ensureDatabaseReady } from '../client';
 import type { DatabaseClient } from '../types';
 import type { ExpenseGroup } from '../../../types/models';
-import { fromSqliteTimestamp, toSqliteTimestamp } from '../../utils/date';
+import {
+  fromIsoTimestamp,
+  fromSqliteTimestamp,
+  toIsoTimestamp,
+  toSqliteTimestamp,
+} from '../../utils/date';
 
 interface ExpenseGroupRow {
   id: number;
@@ -9,6 +14,10 @@ interface ExpenseGroupRow {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  uuid: string | null;
+  user_id: string | null;
+  is_synced: number;
+  last_modified: string | null;
 }
 
 function mapGroup(row: ExpenseGroupRow): ExpenseGroup {
@@ -18,6 +27,10 @@ function mapGroup(row: ExpenseGroupRow): ExpenseGroup {
     description: row.description,
     createdAt: fromSqliteTimestamp(row.createdAt),
     updatedAt: fromSqliteTimestamp(row.updatedAt),
+    uuid: row.uuid ?? undefined,
+    userId: row.user_id,
+    isSynced: Boolean(Number(row.is_synced ?? 0)),
+    lastModified: fromIsoTimestamp(row.last_modified),
   };
 }
 
@@ -25,13 +38,29 @@ export function createExpenseGroupsRepository(client: DatabaseClient) {
   return {
     async insertExpenseGroup(group: ExpenseGroup): Promise<number> {
       await ensureDatabaseReady();
+      const groupUuid = group.uuid ?? crypto.randomUUID();
+      const lastModified = toIsoTimestamp();
+
       await client.sql(
-        `INSERT INTO expense_groups (name, description, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?)`,
+        `INSERT INTO expense_groups (
+          name,
+          description,
+          createdAt,
+          updatedAt,
+          uuid,
+          user_id,
+          is_synced,
+          last_modified
+        )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         group.name,
         group.description ?? null,
         toSqliteTimestamp(group.createdAt),
         toSqliteTimestamp(group.updatedAt),
+        groupUuid,
+        group.userId ?? null,
+        0,
+        lastModified,
       );
       const [row] = await client.sql<{ id: number }>('SELECT last_insert_rowid() AS id');
       return Number(row.id);
@@ -56,14 +85,25 @@ export function createExpenseGroupsRepository(client: DatabaseClient) {
 
     async updateExpenseGroup(group: ExpenseGroup): Promise<void> {
       await ensureDatabaseReady();
+      const groupUuid = group.uuid ?? crypto.randomUUID();
+      const lastModified = toIsoTimestamp();
+
       await client.sql(
         `UPDATE expense_groups
-         SET name = ?, description = ?, createdAt = ?, updatedAt = ?
+         SET name = ?,
+             description = ?,
+             createdAt = ?,
+             updatedAt = ?,
+             uuid = COALESCE(uuid, ?),
+             is_synced = 0,
+             last_modified = ?
          WHERE id = ?`,
         group.name,
         group.description ?? null,
         toSqliteTimestamp(group.createdAt),
         toSqliteTimestamp(group.updatedAt),
+        groupUuid,
+        lastModified,
         group.id ?? null,
       );
     },

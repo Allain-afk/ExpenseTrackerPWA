@@ -60,3 +60,16 @@ export function formatMediumDate(date: Date): string {
     year: 'numeric',
   }).format(date);
 }
+
+export function toIsoTimestamp(date: Date = new Date()): string {
+  return date.toISOString();
+}
+
+export function fromIsoTimestamp(value?: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}

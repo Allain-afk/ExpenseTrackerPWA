@@ -5,6 +5,7 @@ import { useExpenseGroups } from '../hooks/useExpenseGroups';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { formatMoney, formatTransactionCount } from '../lib/utils/format';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { SyncStatusIcon } from '../components/common/SyncStatusIcon';
 import styles from './ListScreen.module.css';
 
 interface GroupsScreenProps {
@@ -27,10 +28,13 @@ export function GroupsScreen({ currencySymbol }: GroupsScreenProps) {
             <p className="eyebrow">Organization</p>
             <h1>Groups</h1>
           </div>
-          <Link className="primary-button" to="/groups/new">
-            <MdAdd size={18} style={{ marginRight: '0.35rem', verticalAlign: 'middle' }} />
-            Add Group
-          </Link>
+          <div className="inline-actions" style={{ gap: '0.65rem' }}>
+            <SyncStatusIcon />
+            <Link className="primary-button" to="/groups/new">
+              <MdAdd size={18} style={{ marginRight: '0.35rem', verticalAlign: 'middle' }} />
+              Add Group
+            </Link>
+          </div>
         </header>
 
         {groups.length ? (

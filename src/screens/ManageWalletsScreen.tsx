@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
   DndContext,
@@ -117,11 +117,7 @@ export function ManageWalletsScreen() {
   const transactions = useTransactions();
   const settings = useSettings();
   const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
-  const [orderedWallets, setOrderedWallets] = useState(wallets.wallets);
-
-  useEffect(() => {
-    setOrderedWallets(wallets.wallets);
-  }, [wallets.wallets]);
+  const [pendingWalletOrder, setPendingWalletOrder] = useState<number[] | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -135,13 +131,41 @@ export function ManageWalletsScreen() {
     }),
   );
 
-  const sortableWalletIds = useMemo(
-    () =>
-      orderedWallets
-        .map((wallet) => wallet.id)
-        .filter((walletId): walletId is number => typeof walletId === 'number'),
-    [orderedWallets],
-  );
+  const sortableWalletIds = useMemo(() => {
+    const persistedIds = wallets.wallets
+      .map((wallet) => wallet.id)
+      .filter((walletId): walletId is number => typeof walletId === 'number');
+
+    if (!pendingWalletOrder) {
+      return persistedIds;
+    }
+
+    const persistedSet = new Set(persistedIds);
+    const pendingIds = pendingWalletOrder.filter((walletId) => persistedSet.has(walletId));
+    const pendingSet = new Set(pendingIds);
+    const missingIds = persistedIds.filter((walletId) => !pendingSet.has(walletId));
+
+    return [...pendingIds, ...missingIds];
+  }, [wallets.wallets, pendingWalletOrder]);
+
+  const orderedWallets = useMemo(() => {
+    const walletById = new Map<number, Wallet>();
+    const walletsWithoutId: Wallet[] = [];
+
+    for (const wallet of wallets.wallets) {
+      if (typeof wallet.id === 'number') {
+        walletById.set(wallet.id, wallet);
+      } else {
+        walletsWithoutId.push(wallet);
+      }
+    }
+
+    const ordered = sortableWalletIds
+      .map((walletId) => walletById.get(walletId))
+      .filter((wallet): wallet is Wallet => Boolean(wallet));
+
+    return [...ordered, ...walletsWithoutId];
+  }, [wallets.wallets, sortableWalletIds]);
 
   const totalBalance = wallets.wallets.reduce((sum, wallet) => {
     return sum + transactions.getWalletBalance(wallet.id!);
@@ -160,25 +184,23 @@ export function ManageWalletsScreen() {
       return;
     }
 
-    const oldIndex = orderedWallets.findIndex((wallet) => wallet.id === active.id);
-    const newIndex = orderedWallets.findIndex((wallet) => wallet.id === over.id);
+    const oldIndex = sortableWalletIds.findIndex((walletId) => walletId === active.id);
+    const newIndex = sortableWalletIds.findIndex((walletId) => walletId === over.id);
 
     if (oldIndex < 0 || newIndex < 0) {
       return;
     }
 
-    const nextWallets = arrayMove(orderedWallets, oldIndex, newIndex);
-    const walletIds = nextWallets
-      .map((wallet) => wallet.id)
-      .filter((walletId): walletId is number => typeof walletId === 'number');
+    const walletIds = arrayMove(sortableWalletIds, oldIndex, newIndex);
 
-    setOrderedWallets(nextWallets);
+    setPendingWalletOrder(walletIds);
 
     try {
       await wallets.reorderWallets(walletIds);
+      setPendingWalletOrder(null);
       showSuccessToast('Card order updated', 'Home will use your new card order.');
     } catch (error) {
-      setOrderedWallets(wallets.wallets);
+      setPendingWalletOrder(null);
       const message =
         error instanceof Error ? error.message : 'We could not save the new card order.';
       showErrorToast('Card order update failed', message);

@@ -1,6 +1,6 @@
 import type { DatabaseClient } from './types';
 
-export const databaseVersion = 6;
+export const databaseVersion = 7;
 
 async function getUserVersion(client: DatabaseClient): Promise<number> {
   const [result] = await client.sql<{ user_version: number }>('PRAGMA user_version');
@@ -99,7 +99,111 @@ async function migrateToV6(client: DatabaseClient): Promise<void> {
   }
 }
 
-const migrations = [migrateToV1, migrateToV2, migrateToV3, migrateToV4, migrateToV5, migrateToV6];
+function nowIsoTimestamp(): string {
+  return new Date().toISOString();
+}
+
+async function migrateToV7(client: DatabaseClient): Promise<void> {
+  const syncTables = ['transactions', 'wallets', 'expense_groups'] as const;
+
+  for (const tableName of syncTables) {
+    if (!(await columnExists(client, tableName, 'uuid'))) {
+      await client.sql(`ALTER TABLE ${tableName} ADD COLUMN uuid TEXT`);
+    }
+
+    if (!(await columnExists(client, tableName, 'user_id'))) {
+      await client.sql(`ALTER TABLE ${tableName} ADD COLUMN user_id TEXT`);
+    }
+
+    if (!(await columnExists(client, tableName, 'is_synced'))) {
+      await client.sql(`ALTER TABLE ${tableName} ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0`);
+    }
+
+    if (!(await columnExists(client, tableName, 'last_modified'))) {
+      await client.sql(`ALTER TABLE ${tableName} ADD COLUMN last_modified TEXT`);
+    }
+  }
+
+  await client.sql('UPDATE transactions SET is_synced = 0 WHERE is_synced IS NULL');
+  await client.sql('UPDATE wallets SET is_synced = 0 WHERE is_synced IS NULL');
+  await client.sql('UPDATE expense_groups SET is_synced = 0 WHERE is_synced IS NULL');
+
+  const transactionRows = await client.sql<{ id: number; uuid: string | null; last_modified: string | null }>(
+    'SELECT id, uuid, last_modified FROM transactions',
+  );
+
+  for (const row of transactionRows) {
+    const nextUuid = row.uuid && row.uuid.trim() ? row.uuid : crypto.randomUUID();
+    const nextLastModified = row.last_modified && row.last_modified.trim()
+      ? row.last_modified
+      : nowIsoTimestamp();
+
+    await client.sql(
+      'UPDATE transactions SET uuid = ?, last_modified = ? WHERE id = ?',
+      nextUuid,
+      nextLastModified,
+      Number(row.id),
+    );
+  }
+
+  const walletRows = await client.sql<{ id: number; uuid: string | null; last_modified: string | null }>(
+    'SELECT id, uuid, last_modified FROM wallets',
+  );
+
+  for (const row of walletRows) {
+    const nextUuid = row.uuid && row.uuid.trim() ? row.uuid : crypto.randomUUID();
+    const nextLastModified = row.last_modified && row.last_modified.trim()
+      ? row.last_modified
+      : nowIsoTimestamp();
+
+    await client.sql(
+      'UPDATE wallets SET uuid = ?, last_modified = ? WHERE id = ?',
+      nextUuid,
+      nextLastModified,
+      Number(row.id),
+    );
+  }
+
+  const groupRows = await client.sql<{ id: number; uuid: string | null; last_modified: string | null }>(
+    'SELECT id, uuid, last_modified FROM expense_groups',
+  );
+
+  for (const row of groupRows) {
+    const nextUuid = row.uuid && row.uuid.trim() ? row.uuid : crypto.randomUUID();
+    const nextLastModified = row.last_modified && row.last_modified.trim()
+      ? row.last_modified
+      : nowIsoTimestamp();
+
+    await client.sql(
+      'UPDATE expense_groups SET uuid = ?, last_modified = ? WHERE id = ?',
+      nextUuid,
+      nextLastModified,
+      Number(row.id),
+    );
+  }
+
+  await client.sql('CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_uuid ON transactions(uuid)');
+  await client.sql('CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_uuid ON wallets(uuid)');
+  await client.sql('CREATE UNIQUE INDEX IF NOT EXISTS idx_expense_groups_uuid ON expense_groups(uuid)');
+
+  await client.sql(
+    'CREATE INDEX IF NOT EXISTS idx_transactions_user_synced ON transactions(user_id, is_synced)',
+  );
+  await client.sql('CREATE INDEX IF NOT EXISTS idx_wallets_user_synced ON wallets(user_id, is_synced)');
+  await client.sql(
+    'CREATE INDEX IF NOT EXISTS idx_expense_groups_user_synced ON expense_groups(user_id, is_synced)',
+  );
+}
+
+const migrations = [
+  migrateToV1,
+  migrateToV2,
+  migrateToV3,
+  migrateToV4,
+  migrateToV5,
+  migrateToV6,
+  migrateToV7,
+];
 
 export async function applyMigrations(client: DatabaseClient): Promise<void> {
   let currentVersion = await getUserVersion(client);
