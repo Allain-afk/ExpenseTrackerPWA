@@ -27,6 +27,19 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Authentication failed.';
 }
 
+function getEmailRedirectUrl(): string | undefined {
+  const configuredRedirectUrl = import.meta.env.VITE_SUPABASE_AUTH_REDIRECT_URL?.trim();
+  if (configuredRedirectUrl) {
+    return configuredRedirectUrl;
+  }
+
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  return new URL('/', window.location.origin).toString();
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(() => isSupabaseConfigured);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -92,15 +105,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: cleanDisplayName,
         }
       : undefined;
+    const emailRedirectTo = getEmailRedirectUrl();
+    const signUpOptions = {
+      ...(metadata ? { data: metadata } : {}),
+      ...(emailRedirectTo ? { emailRedirectTo } : {}),
+    };
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: metadata
-        ? {
-            data: metadata,
-          }
-        : undefined,
+      options: signUpOptions,
     });
     if (error) {
       const message = getErrorMessage(error);
