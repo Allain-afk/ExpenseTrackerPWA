@@ -11,6 +11,7 @@ import { SettingsContext } from './SettingsContext';
 import { TransactionsContext } from './TransactionsContext';
 import { WalletsContext } from './WalletsContext';
 import { ExpenseGroupsContext } from './ExpenseGroupsContext';
+import { BudgetsContext } from './BudgetsContext';
 
 export interface AppBootstrapContextValue {
   isBootstrapping: boolean;
@@ -26,6 +27,7 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
   const transactionsContext = useContext(TransactionsContext);
   const walletsContext = useContext(WalletsContext);
   const expenseGroupsContext = useContext(ExpenseGroupsContext);
+  const budgetsContext = useContext(BudgetsContext);
   const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
 
   const [isBootstrapping, setIsBootstrapping] = useState(false);
@@ -52,6 +54,7 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
           transactionsContext?.loadTransactions(),
           walletsContext?.loadWallets(),
           expenseGroupsContext?.loadExpenseGroups(),
+          budgetsContext?.loadBudgets(),
         ]);
 
         startTransition(() => {

@@ -2,7 +2,7 @@ import { ensureDatabaseReady } from '../client';
 import type { DatabaseClient } from '../types';
 import { fromSqliteTimestamp, toIsoTimestamp, toSqliteTimestamp } from '../../utils/date';
 
-export type SyncTableName = 'transactions' | 'wallets' | 'expense_groups';
+export type SyncTableName = 'transactions' | 'wallets' | 'expense_groups' | 'budgets';
 
 export interface SyncWalletRow {
   id?: number;
@@ -45,10 +45,21 @@ export interface SyncTransactionRow {
   walletId: number | null;
 }
 
+export interface SyncBudgetRow {
+  id: string;
+  category: string;
+  limit_amount: number;
+  uuid: string;
+  user_id: string | null;
+  is_synced: number;
+  last_modified: string;
+}
+
 export interface SyncPendingData {
   wallets: SyncWalletRow[];
   expenseGroups: SyncExpenseGroupRow[];
   transactions: SyncTransactionRow[];
+  budgets: SyncBudgetRow[];
 }
 
 interface CountResultRow {
@@ -83,13 +94,14 @@ export function createSyncRepository(client: DatabaseClient) {
   return {
     async getAnonymousOwnershipCount(): Promise<number> {
       await ensureDatabaseReady();
-      const [transactionCount, walletCount, expenseGroupCount] = await Promise.all([
+      const [transactionCount, walletCount, expenseGroupCount, budgetCount] = await Promise.all([
         countRowsWithNullUser(client, 'transactions'),
         countRowsWithNullUser(client, 'wallets'),
         countRowsWithNullUser(client, 'expense_groups'),
+        countRowsWithNullUser(client, 'budgets'),
       ]);
 
-      return transactionCount + walletCount + expenseGroupCount;
+      return transactionCount + walletCount + expenseGroupCount + budgetCount;
     },
 
     async adoptAnonymousRows(userId: string): Promise<void> {
@@ -125,11 +137,21 @@ export function createSyncRepository(client: DatabaseClient) {
         userId,
         timestamp,
       );
+
+      await client.sql(
+        `UPDATE budgets
+         SET user_id = ?,
+             is_synced = 0,
+             last_modified = ?
+         WHERE user_id IS NULL`,
+        userId,
+        timestamp,
+      );
     },
 
     async getPendingRowsForUser(userId: string): Promise<SyncPendingData> {
       await ensureDatabaseReady();
-      const [wallets, expenseGroups, transactions] = await Promise.all([
+      const [wallets, expenseGroups, transactions, budgets] = await Promise.all([
         client.sql<SyncWalletRow>(
           `SELECT *
            FROM wallets
@@ -154,12 +176,21 @@ export function createSyncRepository(client: DatabaseClient) {
            ORDER BY last_modified ASC, id ASC`,
           userId,
         ),
+        client.sql<SyncBudgetRow>(
+          `SELECT *, COALESCE(uuid, id) AS uuid
+           FROM budgets
+           WHERE user_id = ?
+             AND is_synced = 0
+           ORDER BY last_modified ASC, id ASC`,
+          userId,
+        ),
       ]);
 
       return {
         wallets,
         expenseGroups,
         transactions,
+        budgets,
       };
     },
 
@@ -190,6 +221,17 @@ export function createSyncRepository(client: DatabaseClient) {
       return client.sql<SyncTransactionRow>(
         `SELECT *
          FROM transactions
+         WHERE user_id = ?
+         ORDER BY last_modified ASC, id ASC`,
+        userId,
+      );
+    },
+
+    async getBudgetRowsForUser(userId: string): Promise<SyncBudgetRow[]> {
+      await ensureDatabaseReady();
+      return client.sql<SyncBudgetRow>(
+        `SELECT *, COALESCE(uuid, id) AS uuid
+         FROM budgets
          WHERE user_id = ?
          ORDER BY last_modified ASC, id ASC`,
         userId,
@@ -238,6 +280,16 @@ export function createSyncRepository(client: DatabaseClient) {
       await ensureDatabaseReady();
       const [row] = await client.sql<SyncTransactionRow>(
         'SELECT * FROM transactions WHERE uuid = ?',
+        uuid,
+      );
+      return row ?? null;
+    },
+
+    async getBudgetByUuid(uuid: string): Promise<SyncBudgetRow | null> {
+      await ensureDatabaseReady();
+      const [row] = await client.sql<SyncBudgetRow>(
+        'SELECT *, COALESCE(uuid, id) AS uuid FROM budgets WHERE uuid = ? OR id = ?',
+        uuid,
         uuid,
       );
       return row ?? null;
@@ -351,6 +403,36 @@ export function createSyncRepository(client: DatabaseClient) {
         row.imagePath,
         row.groupId,
         row.walletId,
+        row.uuid,
+        row.user_id,
+        row.last_modified,
+      );
+    },
+
+    async upsertBudgetFromRemote(row: SyncBudgetRow): Promise<void> {
+      await ensureDatabaseReady();
+      const budgetId = row.id && row.id.trim() ? row.id : row.uuid;
+      await client.sql(
+        `INSERT INTO budgets (
+          id,
+          category,
+          limit_amount,
+          uuid,
+          user_id,
+          is_synced,
+          last_modified
+        ) VALUES (?, ?, ?, ?, ?, 1, ?)
+        ON CONFLICT(uuid)
+        DO UPDATE SET
+          id = excluded.id,
+          category = excluded.category,
+          limit_amount = excluded.limit_amount,
+          user_id = excluded.user_id,
+          is_synced = 1,
+          last_modified = excluded.last_modified`,
+        budgetId,
+        row.category,
+        row.limit_amount,
         row.uuid,
         row.user_id,
         row.last_modified,
