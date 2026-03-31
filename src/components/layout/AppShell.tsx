@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { startTransition, useState } from 'react';
+import { Suspense, lazy, startTransition, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   MdAdd,
@@ -14,10 +14,22 @@ import { Modal } from '../common/Modal';
 import { useExpenseGroups } from '../../hooks/useExpenseGroups';
 import { useSettings } from '../../hooks/useSettings';
 import { HomeScreen } from '../../screens/HomeScreen';
-import { TransactionsScreen } from '../../screens/TransactionsScreen';
-import { GroupsScreen } from '../../screens/GroupsScreen';
-import { SettingsScreen } from '../../screens/SettingsScreen';
 import styles from './AppShell.module.css';
+
+const TransactionsScreen = lazy(async () => {
+  const module = await import('../../screens/TransactionsScreen');
+  return { default: module.TransactionsScreen };
+});
+
+const GroupsScreen = lazy(async () => {
+  const module = await import('../../screens/GroupsScreen');
+  return { default: module.GroupsScreen };
+});
+
+const SettingsScreen = lazy(async () => {
+  const module = await import('../../screens/SettingsScreen');
+  return { default: module.SettingsScreen };
+});
 
 const tabs: AppTab[] = ['home', 'transactions', 'groups', 'settings'];
 
@@ -49,20 +61,39 @@ export function AppShell() {
     });
   }
 
+  function renderActiveTab() {
+    if (activeTab === 'home') {
+      return <HomeScreen currencySymbol={currencySymbol} />;
+    }
+
+    if (activeTab === 'transactions') {
+      return <TransactionsScreen currencySymbol={currencySymbol} />;
+    }
+
+    if (activeTab === 'groups') {
+      return <GroupsScreen currencySymbol={currencySymbol} />;
+    }
+
+    return <SettingsScreen />;
+  }
+
   return (
     <div className={styles.shell}>
       <div className={styles.screenStack}>
-        <div className={activeTab === 'home' ? styles.tabPanel : styles.tabPanelHidden}>
-          <HomeScreen currencySymbol={currencySymbol} />
-        </div>
-        <div className={activeTab === 'transactions' ? styles.tabPanel : styles.tabPanelHidden}>
-          <TransactionsScreen currencySymbol={currencySymbol} />
-        </div>
-        <div className={activeTab === 'groups' ? styles.tabPanel : styles.tabPanelHidden}>
-          <GroupsScreen currencySymbol={currencySymbol} />
-        </div>
-        <div className={activeTab === 'settings' ? styles.tabPanel : styles.tabPanelHidden}>
-          <SettingsScreen />
+        <div className={styles.tabPanel}>
+          <Suspense
+            fallback={(
+              <div className="app-page">
+                <div className="app-card state-card">
+                  <div className="spinner" aria-hidden="true" />
+                  <h1>Loading section...</h1>
+                  <p>Please wait while the tab view is prepared.</p>
+                </div>
+              </div>
+            )}
+          >
+            {renderActiveTab()}
+          </Suspense>
         </div>
       </div>
 
