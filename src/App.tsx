@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppProviders } from './context/AppProviders';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
@@ -11,10 +11,14 @@ import { ManageWalletsScreen } from './screens/ManageWalletsScreen';
 import { TransactionFormScreen } from './screens/TransactionFormScreen';
 import { GroupFormScreen } from './screens/GroupFormScreen';
 import { WalletFormScreen } from './screens/WalletFormScreen';
-import { DetailedAnalytics } from './screens/DetailedAnalytics';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { AppToaster } from './components/common/AppToaster';
 import { SyncAdoptionModal } from './components/common/SyncAdoptionModal';
+
+const DetailedAnalytics = lazy(async () => {
+  const module = await import('./screens/DetailedAnalytics');
+  return { default: module.DetailedAnalytics };
+});
 
 function BootstrapBoundary({
   children,
@@ -150,7 +154,19 @@ function AppRoutes() {
         path="/analytics"
         element={
           <BootstrapBoundary requireSetup>
-            <DetailedAnalytics currencySymbol={currencySymbol} />
+            <Suspense
+              fallback={(
+                <div className="full-screen-state">
+                  <div className="app-card state-card">
+                    <div className="spinner" aria-hidden="true" />
+                    <h1>Opening analytics...</h1>
+                    <p>Your detailed reports are loading.</p>
+                  </div>
+                </div>
+              )}
+            >
+              <DetailedAnalytics currencySymbol={currencySymbol} />
+            </Suspense>
           </BootstrapBoundary>
         }
       />

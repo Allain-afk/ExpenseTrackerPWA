@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   MdAccountBalanceWallet,
@@ -14,7 +14,6 @@ import { useSettings } from '../hooks/useSettings';
 import { useBudgets } from '../hooks/useBudgets';
 import { MainWalletForm } from '../components/forms/MainWalletForm';
 import { TransactionTypeIcon } from '../components/common/TransactionTypeIcon';
-import { AnalyticsOverview } from '../components/common/AnalyticsOverview';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { numberToColorHex, formatMoney } from '../lib/utils/format';
 import { formatShortDate } from '../lib/utils/date';
@@ -27,6 +26,11 @@ import styles from './HomeScreen.module.css';
 interface HomeScreenProps {
   currencySymbol: string;
 }
+
+const AnalyticsOverview = lazy(async () => {
+  const module = await import('../components/common/AnalyticsOverview');
+  return { default: module.AnalyticsOverview };
+});
 
 function gradientForColor(colorValue: number): string {
   const base = numberToColorHex(colorValue);
@@ -186,12 +190,28 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
           </div>
         </SectionList>
 
-        <AnalyticsOverview
-          currencySymbol={currencySymbol}
-          onSeeFullReport={() => navigate('/analytics')}
-          tipDescription={dailyTip.description}
-          tipTitle={dailyTip.title}
-        />
+        <Suspense
+          fallback={(
+            <SectionList
+              footerText="Preparing your latest analytics snapshot..."
+              headerText="Insights & Analytics"
+            >
+              <div className="inset-item">
+                <span className="inset-item-content">
+                  <span className="inset-title">Loading insights...</span>
+                  <span className="inset-subtitle">Crunching your offline transactions and budgets.</span>
+                </span>
+              </div>
+            </SectionList>
+          )}
+        >
+          <AnalyticsOverview
+            currencySymbol={currencySymbol}
+            onSeeFullReport={() => navigate('/analytics')}
+            tipDescription={dailyTip.description}
+            tipTitle={dailyTip.title}
+          />
+        </Suspense>
 
         <SectionList headerText="Recent Transactions">
           {recentTransactions.length ? (
