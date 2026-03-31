@@ -690,7 +690,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.3.4</span>
+              <span className="inset-subtitle">1.3.5</span>
             </span>
           </button>
           <div className="inset-item">
