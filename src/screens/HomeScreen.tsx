@@ -11,8 +11,10 @@ import {
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useSettings } from '../hooks/useSettings';
+import { useBudgets } from '../hooks/useBudgets';
 import { MainWalletForm } from '../components/forms/MainWalletForm';
 import { TransactionTypeIcon } from '../components/common/TransactionTypeIcon';
+import { AnalyticsOverview } from '../components/common/AnalyticsOverview';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import { numberToColorHex, formatMoney } from '../lib/utils/format';
 import { formatShortDate } from '../lib/utils/date';
@@ -41,6 +43,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
   const transactions = useTransactions();
   const wallets = useWallets();
   const settings = useSettings();
+  const budgets = useBudgets();
 
   const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
   const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
@@ -62,7 +65,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
   const recentTransactions = transactions.transactions.slice(0, 5);
 
   async function refreshHome(): Promise<void> {
-    await Promise.all([transactions.loadTransactions(), wallets.loadWallets()]);
+    await Promise.all([transactions.loadTransactions(), wallets.loadWallets(), budgets.loadBudgets()]);
   }
 
   function openMainWalletEditor() {
@@ -182,6 +185,13 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
             </div>
           </div>
         </SectionList>
+
+        <AnalyticsOverview
+          currencySymbol={currencySymbol}
+          onSeeFullReport={() => navigate('/analytics')}
+          tipDescription={dailyTip.description}
+          tipTitle={dailyTip.title}
+        />
 
         <SectionList headerText="Recent Transactions">
           {recentTransactions.length ? (

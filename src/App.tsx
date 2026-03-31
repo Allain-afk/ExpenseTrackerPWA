@@ -11,6 +11,7 @@ import { ManageWalletsScreen } from './screens/ManageWalletsScreen';
 import { TransactionFormScreen } from './screens/TransactionFormScreen';
 import { GroupFormScreen } from './screens/GroupFormScreen';
 import { WalletFormScreen } from './screens/WalletFormScreen';
+import { DetailedAnalytics } from './screens/DetailedAnalytics';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { AppToaster } from './components/common/AppToaster';
 import { SyncAdoptionModal } from './components/common/SyncAdoptionModal';
@@ -60,6 +61,8 @@ function BootstrapBoundary({
 }
 
 function AppRoutes() {
+  const { currencySymbol } = useSettings();
+
   return (
     <Routes>
       <Route path="/" element={<SplashScreen />} />
@@ -140,6 +143,14 @@ function AppRoutes() {
         element={
           <BootstrapBoundary requireSetup>
             <WalletFormScreen />
+          </BootstrapBoundary>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <BootstrapBoundary requireSetup>
+            <DetailedAnalytics currencySymbol={currencySymbol} />
           </BootstrapBoundary>
         }
       />

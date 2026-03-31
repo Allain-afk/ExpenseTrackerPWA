@@ -7,6 +7,11 @@ interface UserScopedQuery {
   params: Array<string>;
 }
 
+interface DateRange {
+  start: Date;
+  end: Date;
+}
+
 function monthRange(referenceDate: Date): { start: Date; end: Date } {
   const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1, 0, 0, 0, 0);
   const end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -28,6 +33,23 @@ function weekRange(referenceDate: Date): { start: Date; end: Date } {
   start.setDate(end.getDate() - 6);
   start.setHours(0, 0, 0, 0);
 
+  return { start, end };
+}
+
+function dayRange(referenceDate: Date, days: number): DateRange {
+  const safeDays = Math.max(1, Math.floor(days));
+  const end = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+  const start = new Date(end);
+  start.setDate(end.getDate() - (safeDays - 1));
+  start.setHours(0, 0, 0, 0);
   return { start, end };
 }
 
@@ -72,6 +94,44 @@ function computeBudgetVsActual(
 }
 
 export function createAnalyticsRepository(client: DatabaseClient) {
+  async function getDailySpendSeries(
+    range: DateRange,
+    userScope: UserScopedQuery,
+  ): Promise<DailySpendPoint[]> {
+    const weeklyRows = await client.sql<{ day_key: string; total: number }>(
+      `SELECT SUBSTR(date, 1, 10) AS day_key, SUM(amount) AS total
+       FROM transactions
+       WHERE type = 'expense'
+         AND ${userScope.clause}
+         AND date BETWEEN ? AND ?
+       GROUP BY SUBSTR(date, 1, 10)
+       ORDER BY day_key ASC`,
+      ...userScope.params,
+      toSqlDateTime(range.start),
+      toSqlDateTime(range.end),
+    );
+
+    const dailyMap = new Map<string, number>();
+    for (const row of weeklyRows) {
+      dailyMap.set(row.day_key, Number(row.total ?? 0));
+    }
+
+    const daysDiff = Math.round((range.end.getTime() - range.start.getTime()) / 86400000);
+    const points: DailySpendPoint[] = [];
+
+    for (let dayOffset = 0; dayOffset <= daysDiff; dayOffset += 1) {
+      const day = new Date(range.start);
+      day.setDate(range.start.getDate() + dayOffset);
+      const dayKey = toSqlDate(day);
+      points.push({
+        date: day,
+        total: Number(dailyMap.get(dayKey) ?? 0),
+      });
+    }
+
+    return points;
+  }
+
   return {
     async getAnalyticsSummary(
       options?: {
@@ -118,34 +178,7 @@ export function createAnalyticsRepository(client: DatabaseClient) {
         ...userScope.params,
       );
 
-      const weeklyRows = await client.sql<{ day_key: string; total: number }>(
-        `SELECT SUBSTR(date, 1, 10) AS day_key, SUM(amount) AS total
-         FROM transactions
-         WHERE type = 'expense'
-           AND ${userScope.clause}
-           AND date BETWEEN ? AND ?
-         GROUP BY SUBSTR(date, 1, 10)
-         ORDER BY day_key ASC`,
-        ...userScope.params,
-        toSqlDateTime(weekStart),
-        toSqlDateTime(weekEnd),
-      );
-
-      const weeklyMap = new Map<string, number>();
-      for (const row of weeklyRows) {
-        weeklyMap.set(row.day_key, Number(row.total ?? 0));
-      }
-
-      const weeklySpend: DailySpendPoint[] = [];
-      for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
-        const day = new Date(weekStart);
-        day.setDate(weekStart.getDate() + dayOffset);
-        const dayKey = toSqlDate(day);
-        weeklySpend.push({
-          date: day,
-          total: Number(weeklyMap.get(dayKey) ?? 0),
-        });
-      }
+      const weeklySpend = await getDailySpendSeries({ start: weekStart, end: weekEnd }, userScope);
 
       const topCategories: AnalyticsCategoryTotal[] = topCategoryRows.map((row) => ({
         category: row.category,
@@ -187,6 +220,55 @@ export function createAnalyticsRepository(client: DatabaseClient) {
         topCategoryBudgetVsActual,
         weeklySpend,
       };
+    },
+
+    async getDailySpendSeries(
+      options?: {
+        referenceDate?: Date;
+        days?: number;
+        userId?: string | null;
+      },
+    ): Promise<DailySpendPoint[]> {
+      await ensureDatabaseReady();
+      const referenceDate = options?.referenceDate ?? new Date();
+      const days = options?.days ?? 7;
+      const range = dayRange(referenceDate, days);
+      const userScope = toUserScope(options?.userId ?? null);
+      return getDailySpendSeries(range, userScope);
+    },
+
+    async getTopCategories(
+      options?: {
+        referenceDate?: Date;
+        limit?: number;
+        userId?: string | null;
+      },
+    ): Promise<AnalyticsCategoryTotal[]> {
+      await ensureDatabaseReady();
+      const referenceDate = options?.referenceDate ?? new Date();
+      const { start, end } = monthRange(referenceDate);
+      const userScope = toUserScope(options?.userId ?? null);
+      const limit = Math.max(1, Math.floor(options?.limit ?? 3));
+
+      const rows = await client.sql<{ category: string; amount: number }>(
+        `SELECT category, SUM(amount) AS amount
+         FROM transactions
+         WHERE type = 'expense'
+           AND ${userScope.clause}
+           AND date BETWEEN ? AND ?
+         GROUP BY category
+         ORDER BY amount DESC
+         LIMIT ?`,
+        ...userScope.params,
+        toSqlDateTime(start),
+        toSqlDateTime(end),
+        limit,
+      );
+
+      return rows.map((row) => ({
+        category: row.category,
+        amount: Number(row.amount ?? 0),
+      }));
     },
 
     async getMonthlyCategorySpend(

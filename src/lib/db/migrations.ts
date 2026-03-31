@@ -210,8 +210,13 @@ async function migrateToV8(client: DatabaseClient): Promise<void> {
 
   await client.sql('UPDATE budgets SET is_synced = 0 WHERE is_synced IS NULL');
 
-  const budgetRows = await client.sql<{ id: string | null; uuid: string | null; last_modified: string | null }>(
-    'SELECT id, uuid, last_modified FROM budgets',
+  const budgetRows = await client.sql<{
+    row_id: number;
+    id: string | null;
+    uuid: string | null;
+    last_modified: string | null;
+  }>(
+    'SELECT rowid AS row_id, id, uuid, last_modified FROM budgets',
   );
 
   for (const row of budgetRows) {
@@ -222,11 +227,11 @@ async function migrateToV8(client: DatabaseClient): Promise<void> {
       : nowIsoTimestamp();
 
     await client.sql(
-      'UPDATE budgets SET id = ?, uuid = ?, last_modified = ? WHERE COALESCE(id, "") = COALESCE(?, "")',
+      'UPDATE budgets SET id = ?, uuid = ?, last_modified = ? WHERE rowid = ?',
       rowId,
       rowUuid,
       rowLastModified,
-      row.id,
+      row.row_id,
     );
   }
 
