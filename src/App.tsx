@@ -30,6 +30,8 @@ function BootstrapBoundary({
 }) {
   const { bootstrap, bootstrapError, hasBootstrapped, isBootstrapping } = useAppBootstrap(true);
   const { isSetupComplete } = useSettings();
+  const bypassSetupOnce = typeof window !== 'undefined'
+    && window.sessionStorage.getItem('bypass_setup_once') === 'true';
 
   if (bootstrapError) {
     return (
@@ -58,8 +60,12 @@ function BootstrapBoundary({
     );
   }
 
-  if (requireSetup && !isSetupComplete) {
+  if (requireSetup && !isSetupComplete && !bypassSetupOnce) {
     return <Navigate replace to="/setup" />;
+  }
+
+  if (bypassSetupOnce) {
+    window.sessionStorage.removeItem('bypass_setup_once');
   }
 
   return <>{children}</>;

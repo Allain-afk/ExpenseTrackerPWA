@@ -1,6 +1,6 @@
 import type { DatabaseClient } from './types';
 
-export const databaseVersion = 8;
+export const databaseVersion = 9;
 
 async function getUserVersion(client: DatabaseClient): Promise<number> {
   const [result] = await client.sql<{ user_version: number }>('PRAGMA user_version');
@@ -240,6 +240,34 @@ async function migrateToV8(client: DatabaseClient): Promise<void> {
   await client.sql('CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category)');
 }
 
+async function migrateToV9(client: DatabaseClient): Promise<void> {
+  if (!(await columnExists(client, 'transactions', 'wallet_uuid'))) {
+    await client.sql('ALTER TABLE transactions ADD COLUMN wallet_uuid TEXT');
+  }
+
+  if (!(await columnExists(client, 'transactions', 'group_uuid'))) {
+    await client.sql('ALTER TABLE transactions ADD COLUMN group_uuid TEXT');
+  }
+
+  await client.sql(`
+    UPDATE transactions
+    SET wallet_uuid = (
+      SELECT wallets.uuid FROM wallets WHERE wallets.id = transactions.walletId
+    )
+    WHERE walletId IS NOT NULL
+      AND (wallet_uuid IS NULL OR wallet_uuid = '')
+  `);
+
+  await client.sql(`
+    UPDATE transactions
+    SET group_uuid = (
+      SELECT expense_groups.uuid FROM expense_groups WHERE expense_groups.id = transactions.groupId
+    )
+    WHERE groupId IS NOT NULL
+      AND (group_uuid IS NULL OR group_uuid = '')
+  `);
+}
+
 const migrations = [
   migrateToV1,
   migrateToV2,
@@ -249,6 +277,7 @@ const migrations = [
   migrateToV6,
   migrateToV7,
   migrateToV8,
+  migrateToV9,
 ];
 
 export async function applyMigrations(client: DatabaseClient): Promise<void> {

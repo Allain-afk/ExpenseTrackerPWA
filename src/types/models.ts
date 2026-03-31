@@ -17,7 +17,9 @@ export interface ExpenseTransaction extends SyncMetadata {
   type: TransactionType;
   imagePath?: string | null;
   groupId?: number | null;
+  groupUuid?: string | null;
   walletId?: number | null;
+  walletUuid?: string | null;
 }
 
 export interface ExpenseGroup extends SyncMetadata {

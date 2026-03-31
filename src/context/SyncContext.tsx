@@ -150,7 +150,9 @@ function normalizeTransactionRemoteRow(row: Record<string, unknown>): SyncTransa
     type: String(row.type ?? 'expense'),
     imagePath: row.imagePath ? String(row.imagePath) : null,
     groupId: row.groupId == null ? null : Number(row.groupId),
+    group_uuid: row.group_uuid ? String(row.group_uuid) : null,
     walletId: row.walletId == null ? null : Number(row.walletId),
+    wallet_uuid: row.wallet_uuid ? String(row.wallet_uuid) : null,
   };
 }
 
@@ -211,8 +213,8 @@ function toTransactionRemotePayload(row: SyncTransactionRow) {
     date: row.date,
     type: row.type,
     imagePath: row.imagePath,
-    groupId: row.groupId,
-    walletId: row.walletId,
+    group_uuid: row.group_uuid,
+    wallet_uuid: row.wallet_uuid,
     last_modified: row.last_modified,
   };
 }

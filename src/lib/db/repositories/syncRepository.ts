@@ -42,7 +42,9 @@ export interface SyncTransactionRow {
   type: string;
   imagePath: string | null;
   groupId: number | null;
+  group_uuid: string | null;
   walletId: number | null;
+  wallet_uuid: string | null;
 }
 
 export interface SyncBudgetRow {
@@ -367,6 +369,12 @@ export function createSyncRepository(client: DatabaseClient) {
     async upsertTransactionFromRemote(row: SyncTransactionRow): Promise<void> {
       await ensureDatabaseReady();
       const transactionDate = normalizeToSqliteTimestamp(row.date);
+      const walletId = row.wallet_uuid
+        ? Number((await client.sql<{ id: number }>('SELECT id FROM wallets WHERE uuid = ?', row.wallet_uuid))[0]?.id ?? null)
+        : row.walletId ?? null;
+      const groupId = row.group_uuid
+        ? Number((await client.sql<{ id: number }>('SELECT id FROM expense_groups WHERE uuid = ?', row.group_uuid))[0]?.id ?? null)
+        : row.groupId ?? null;
       await client.sql(
         `INSERT INTO transactions (
           amount,
@@ -376,7 +384,9 @@ export function createSyncRepository(client: DatabaseClient) {
           type,
           imagePath,
           groupId,
+          group_uuid,
           walletId,
+          wallet_uuid,
           uuid,
           user_id,
           is_synced,
@@ -391,7 +401,9 @@ export function createSyncRepository(client: DatabaseClient) {
           type = excluded.type,
           imagePath = excluded.imagePath,
           groupId = excluded.groupId,
+          group_uuid = excluded.group_uuid,
           walletId = excluded.walletId,
+          wallet_uuid = excluded.wallet_uuid,
           user_id = excluded.user_id,
           is_synced = 1,
           last_modified = excluded.last_modified`,
@@ -401,8 +413,10 @@ export function createSyncRepository(client: DatabaseClient) {
         transactionDate,
         row.type,
         row.imagePath,
-        row.groupId,
-        row.walletId,
+        groupId,
+        row.group_uuid ?? null,
+        walletId,
+        row.wallet_uuid ?? null,
         row.uuid,
         row.user_id,
         row.last_modified,

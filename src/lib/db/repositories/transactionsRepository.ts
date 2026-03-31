@@ -17,7 +17,9 @@ interface TransactionRow {
   type: string;
   imagePath: string | null;
   groupId: number | null;
+  group_uuid: string | null;
   walletId: number | null;
+  wallet_uuid: string | null;
   uuid: string | null;
   user_id: string | null;
   is_synced: number;
@@ -34,7 +36,9 @@ function mapTransaction(row: TransactionRow): ExpenseTransaction {
     type: row.type as TransactionType,
     imagePath: row.imagePath,
     groupId: row.groupId,
+    groupUuid: row.group_uuid,
     walletId: row.walletId,
+    walletUuid: row.wallet_uuid,
     uuid: row.uuid ?? undefined,
     userId: row.user_id,
     isSynced: Boolean(Number(row.is_synced ?? 0)),
@@ -50,8 +54,6 @@ function transactionToParams(transaction: ExpenseTransaction) {
     toSqliteTimestamp(transaction.date),
     transaction.type,
     transaction.imagePath ?? null,
-    transaction.groupId ?? null,
-    transaction.walletId ?? null,
   ];
 }
 
@@ -71,14 +73,25 @@ export function createTransactionsRepository(client: DatabaseClient) {
           type,
           imagePath,
           groupId,
+          group_uuid,
           walletId,
+          wallet_uuid,
           uuid,
           user_id,
           is_synced,
           last_modified
         )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (
+           ?, ?, ?, ?, ?, ?,
+           ?, (SELECT uuid FROM expense_groups WHERE id = ?),
+           ?, (SELECT uuid FROM wallets WHERE id = ?),
+           ?, ?, ?, ?
+         )`,
         ...transactionToParams(transaction),
+        transaction.groupId ?? null,
+        transaction.groupId ?? null,
+        transaction.walletId ?? null,
+        transaction.walletId ?? null,
         transactionUuid,
         transaction.userId ?? null,
         0,
@@ -136,12 +149,18 @@ export function createTransactionsRepository(client: DatabaseClient) {
              type = ?,
              imagePath = ?,
              groupId = ?,
+             group_uuid = (SELECT uuid FROM expense_groups WHERE id = ?),
              walletId = ?,
+             wallet_uuid = (SELECT uuid FROM wallets WHERE id = ?),
              uuid = COALESCE(uuid, ?),
              is_synced = 0,
              last_modified = ?
          WHERE id = ?`,
         ...transactionToParams(transaction),
+        transaction.groupId ?? null,
+        transaction.groupId ?? null,
+        transaction.walletId ?? null,
+        transaction.walletId ?? null,
         transactionUuid,
         lastModified,
         transaction.id ?? null,

@@ -40,6 +40,8 @@ create table if not exists public.transactions (
   "imagePath" text,
   "groupId" integer,
   "walletId" integer,
+  group_uuid text,
+  wallet_uuid text,
   last_modified timestamptz not null default timezone('utc', now())
 );
 
