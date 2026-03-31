@@ -14,6 +14,15 @@ export function SplashScreen() {
   });
 
   useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const searchParams = new URLSearchParams(window.location.search);
+    const recoveryType = hashParams.get('type') ?? searchParams.get('type');
+
+    if (window.location.pathname === '/' && recoveryType === 'recovery') {
+      navigate('/reset-password', { replace: true });
+      return;
+    }
+
     if (!hasBootstrapped || isBootstrapping || bootstrapError) {
       return;
     }
