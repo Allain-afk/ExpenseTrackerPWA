@@ -43,6 +43,15 @@ create table if not exists public.transactions (
   last_modified timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.budgets (
+  id text primary key,
+  uuid text unique not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  category text not null,
+  limit_amount numeric(18, 2) not null,
+  last_modified timestamptz not null default timezone('utc', now())
+);
+
 create index if not exists idx_wallets_user_last_modified
   on public.wallets (user_id, last_modified desc);
 
@@ -52,9 +61,13 @@ create index if not exists idx_groups_user_last_modified
 create index if not exists idx_transactions_user_last_modified
   on public.transactions (user_id, last_modified desc);
 
+create index if not exists idx_budgets_user_last_modified
+  on public.budgets (user_id, last_modified desc);
+
 alter table public.wallets enable row level security;
 alter table public.expense_groups enable row level security;
 alter table public.transactions enable row level security;
+alter table public.budgets enable row level security;
 
 drop policy if exists "wallets owner access" on public.wallets;
 create policy "wallets owner access"
@@ -73,6 +86,13 @@ create policy "groups owner access"
 drop policy if exists "transactions owner access" on public.transactions;
 create policy "transactions owner access"
   on public.transactions
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "budgets owner access" on public.budgets;
+create policy "budgets owner access"
+  on public.budgets
   for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);

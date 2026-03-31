@@ -10,6 +10,7 @@ import {
 import { databaseClient } from '../lib/db/client';
 import {
   createSyncRepository,
+  type SyncBudgetRow,
   type SyncExpenseGroupRow,
   type SyncPendingData,
   type SyncTableName,
@@ -26,6 +27,7 @@ import {
 } from '../lib/utils/appToast';
 import { useExpenseGroups } from '../hooks/useExpenseGroups';
 import { useSettings } from '../hooks/useSettings';
+import { useBudgets } from '../hooks/useBudgets';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 
@@ -152,6 +154,28 @@ function normalizeTransactionRemoteRow(row: Record<string, unknown>): SyncTransa
   };
 }
 
+function normalizeBudgetRemoteRow(row: Record<string, unknown>): SyncBudgetRow | null {
+  const uuid = String(row.uuid ?? row.id ?? '').trim();
+  if (!uuid) {
+    return null;
+  }
+
+  const id = String(row.id ?? uuid).trim();
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    category: String(row.category ?? ''),
+    limit_amount: Number(row.limit_amount ?? 0),
+    uuid,
+    user_id: row.user_id ? String(row.user_id) : null,
+    is_synced: 1,
+    last_modified: String(row.last_modified ?? new Date().toISOString()),
+  };
+}
+
 function toWalletRemotePayload(row: SyncWalletRow) {
   return {
     uuid: row.uuid,
@@ -193,12 +217,24 @@ function toTransactionRemotePayload(row: SyncTransactionRow) {
   };
 }
 
+function toBudgetRemotePayload(row: SyncBudgetRow) {
+  return {
+    id: row.id,
+    uuid: row.uuid,
+    user_id: row.user_id,
+    category: row.category,
+    limit_amount: row.limit_amount,
+    last_modified: row.last_modified,
+  };
+}
+
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { user, isConfigured } = useAuth();
   const settings = useSettings();
   const transactions = useTransactions();
   const wallets = useWallets();
   const expenseGroups = useExpenseGroups();
+  const budgets = useBudgets();
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [status, setStatus] = useState<SyncStatus>(() => (navigator.onLine ? 'idle' : 'offline'));
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -246,7 +282,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const syncTableRows = useCallback(async (
     userId: string,
     tableName: SyncTableName,
-    rows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow>,
+    rows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow | SyncBudgetRow>,
   ): Promise<void> => {
     if (!supabase || !rows.length) {
       return;
@@ -275,7 +311,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const pushRows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow> = [];
+    const pushRows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow | SyncBudgetRow> = [];
     const pullRows: Array<Record<string, unknown>> = [];
 
     for (const row of rows) {
@@ -300,6 +336,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
         if (tableName === 'expense_groups') {
           return toGroupRemotePayload(row as SyncExpenseGroupRow);
+        }
+
+        if (tableName === 'budgets') {
+          return toBudgetRemotePayload(row as SyncBudgetRow);
         }
 
         return toTransactionRemotePayload(row as SyncTransactionRow);
@@ -344,6 +384,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (tableName === 'budgets') {
+      for (const row of pullRows) {
+        const normalized = normalizeBudgetRemoteRow(row);
+        if (normalized) {
+          await syncRepository.upsertBudgetFromRemote(normalized);
+        }
+      }
+      return;
+    }
+
     for (const row of pullRows) {
       const normalized = normalizeTransactionRemoteRow(row);
       if (normalized) {
@@ -354,31 +404,40 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const runSync = useCallback(async (userId: string): Promise<SyncRunSummary> => {
     const pending: SyncPendingData = await syncRepository.getPendingRowsForUser(userId);
-    const pendingCount = pending.wallets.length + pending.expenseGroups.length + pending.transactions.length;
+    const pendingCount = pending.wallets.length
+      + pending.expenseGroups.length
+      + pending.transactions.length
+      + pending.budgets.length;
 
     await syncTableRows(userId, 'wallets', pending.wallets);
     await syncTableRows(userId, 'expense_groups', pending.expenseGroups);
     await syncTableRows(userId, 'transactions', pending.transactions);
+    await syncTableRows(userId, 'budgets', pending.budgets);
 
     const [
       remoteWalletRows,
       remoteExpenseGroupRows,
       remoteTransactionRows,
+      remoteBudgetRows,
       localWalletRows,
       localExpenseGroupRows,
       localTransactionRows,
+      localBudgetRows,
     ] = await Promise.all([
       fetchAllRemoteRows(userId, 'wallets'),
       fetchAllRemoteRows(userId, 'expense_groups'),
       fetchAllRemoteRows(userId, 'transactions'),
+      fetchAllRemoteRows(userId, 'budgets'),
       syncRepository.getWalletRowsForUser(userId),
       syncRepository.getExpenseGroupRowsForUser(userId),
       syncRepository.getTransactionRowsForUser(userId),
+      syncRepository.getBudgetRowsForUser(userId),
     ]);
 
     const localWalletMap = new Map(localWalletRows.map((row) => [row.uuid, row]));
     const localExpenseGroupMap = new Map(localExpenseGroupRows.map((row) => [row.uuid, row]));
     const localTransactionMap = new Map(localTransactionRows.map((row) => [row.uuid, row]));
+    const localBudgetMap = new Map(localBudgetRows.map((row) => [row.uuid, row]));
 
     let pulledCount = 0;
 
@@ -417,6 +476,19 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const localRow = localTransactionMap.get(normalized.uuid);
       if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
         await syncRepository.upsertTransactionFromRemote(normalized);
+        pulledCount += 1;
+      }
+    }
+
+    for (const row of remoteBudgetRows) {
+      const normalized = normalizeBudgetRemoteRow(row);
+      if (!normalized) {
+        continue;
+      }
+
+      const localRow = localBudgetMap.get(normalized.uuid);
+      if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
+        await syncRepository.upsertBudgetFromRemote(normalized);
         pulledCount += 1;
       }
     }
@@ -460,6 +532,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           wallets.loadWallets(),
           expenseGroups.loadExpenseGroups(),
           transactions.loadTransactions(),
+          budgets.loadBudgets(),
         ]);
       }
 
@@ -493,7 +566,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     } finally {
       isSyncingRef.current = false;
     }
-  }, [expenseGroups, isConfigured, runSync, transactions, user?.id, wallets]);
+  }, [budgets, expenseGroups, isConfigured, runSync, transactions, user?.id, wallets]);
 
   useEffect(() => {
     pendingDisplayNameHydrationRef.current = null;

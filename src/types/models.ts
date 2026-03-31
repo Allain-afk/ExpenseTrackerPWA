@@ -37,6 +37,38 @@ export interface Wallet extends SyncMetadata {
   sortOrder?: number;
 }
 
+export interface Budget extends SyncMetadata {
+  id?: string;
+  category: string;
+  limitAmount: number;
+}
+
+export interface AnalyticsCategoryTotal {
+  category: string;
+  amount: number;
+}
+
+export interface BudgetVsActualSummary {
+  category: string;
+  actual: number;
+  budget: number;
+  percentage: number;
+}
+
+export interface DailySpendPoint {
+  date: Date;
+  total: number;
+}
+
+export interface AnalyticsSummary {
+  monthlyTotal: number;
+  monthlyBudgetLimit: number;
+  monthlyBudgetPercentage: number;
+  topCategories: AnalyticsCategoryTotal[];
+  topCategoryBudgetVsActual: BudgetVsActualSummary | null;
+  weeklySpend: DailySpendPoint[];
+}
+
 export interface Settings {
   currency: string;
   currencySymbol: string;

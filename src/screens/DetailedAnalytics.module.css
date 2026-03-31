@@ -1,0 +1,116 @@
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.summaryGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summaryTile {
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  background: var(--color-surface-soft);
+}
+
+.summaryLabel {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  margin: 0.3rem 0 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.chartCard {
+  padding: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.chartTitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chartFrame {
+  height: 220px;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: 0.4rem 0.4rem 0.15rem;
+  background: var(--color-surface-soft);
+}
+
+.budgetSection {
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.budgetForm {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.budgetActions {
+  display: flex;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.budgetList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.budgetRow {
+  border: 1px solid var(--color-border);
+  border-radius: 0.95rem;
+  background: var(--color-surface-soft);
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.budgetMeta {
+  min-width: 0;
+}
+
+.budgetTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.budgetHint {
+  margin: 0.2rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.budgetRowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.smallButton {
+  padding: 0.45rem 0.75rem;
+  min-height: 2.2rem;
+}
+
+@media (max-width: 540px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}

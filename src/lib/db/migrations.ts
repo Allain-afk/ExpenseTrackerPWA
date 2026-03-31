@@ -1,6 +1,6 @@
 import type { DatabaseClient } from './types';
 
-export const databaseVersion = 7;
+export const databaseVersion = 8;
 
 async function getUserVersion(client: DatabaseClient): Promise<number> {
   const [result] = await client.sql<{ user_version: number }>('PRAGMA user_version');
@@ -195,6 +195,51 @@ async function migrateToV7(client: DatabaseClient): Promise<void> {
   );
 }
 
+async function migrateToV8(client: DatabaseClient): Promise<void> {
+  await client.sql(`
+    CREATE TABLE IF NOT EXISTS budgets (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      limit_amount REAL NOT NULL,
+      uuid TEXT UNIQUE,
+      user_id TEXT,
+      is_synced INTEGER NOT NULL DEFAULT 0,
+      last_modified TEXT
+    )
+  `);
+
+  await client.sql('UPDATE budgets SET is_synced = 0 WHERE is_synced IS NULL');
+
+  const budgetRows = await client.sql<{
+    row_id: number;
+    id: string | null;
+    uuid: string | null;
+    last_modified: string | null;
+  }>(
+    'SELECT rowid AS row_id, id, uuid, last_modified FROM budgets',
+  );
+
+  for (const row of budgetRows) {
+    const rowId = row.id && row.id.trim() ? row.id : crypto.randomUUID();
+    const rowUuid = row.uuid && row.uuid.trim() ? row.uuid : rowId;
+    const rowLastModified = row.last_modified && row.last_modified.trim()
+      ? row.last_modified
+      : nowIsoTimestamp();
+
+    await client.sql(
+      'UPDATE budgets SET id = ?, uuid = ?, last_modified = ? WHERE rowid = ?',
+      rowId,
+      rowUuid,
+      rowLastModified,
+      row.row_id,
+    );
+  }
+
+  await client.sql('CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_uuid ON budgets(uuid)');
+  await client.sql('CREATE INDEX IF NOT EXISTS idx_budgets_user_synced ON budgets(user_id, is_synced)');
+  await client.sql('CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category)');
+}
+
 const migrations = [
   migrateToV1,
   migrateToV2,
@@ -203,6 +248,7 @@ const migrations = [
   migrateToV5,
   migrateToV6,
   migrateToV7,
+  migrateToV8,
 ];
 
 export async function applyMigrations(client: DatabaseClient): Promise<void> {

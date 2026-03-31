@@ -1,10 +1,17 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { createTransactionsRepository } from '../lib/db/repositories/transactionsRepository';
+import { createBudgetsRepository } from '../lib/db/repositories/budgetsRepository';
+import { createAnalyticsRepository } from '../lib/db/repositories/analyticsRepository';
 import { databaseClient } from '../lib/db/client';
 import type { ExpenseTransaction, TransactionType } from '../types/models';
 import { AuthContext } from './AuthContext';
+import { useSettings } from '../hooks/useSettings';
+import { formatMoney } from '../lib/utils/format';
+import { showWarningToast } from '../lib/utils/appToast';
 
 const transactionsRepository = createTransactionsRepository(databaseClient);
+const budgetsRepository = createBudgetsRepository(databaseClient);
+const analyticsRepository = createAnalyticsRepository(databaseClient);
 
 export interface TransactionsContextValue {
   transactions: ExpenseTransaction[];
@@ -28,6 +35,7 @@ export const TransactionsContext = createContext<TransactionsContextValue | null
 
 export function TransactionsProvider({ children }: { children: ReactNode }) {
   const authContext = useContext(AuthContext);
+  const settings = useSettings();
   const [transactions, setTransactions] = useState<ExpenseTransaction[]>([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
@@ -52,12 +60,51 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
   }
 
   async function addTransaction(transaction: ExpenseTransaction): Promise<number> {
+    const effectiveUserId = authContext?.user?.id ?? transaction.userId ?? null;
     const ownedTransaction: ExpenseTransaction = {
       ...transaction,
-      userId: authContext?.user?.id ?? transaction.userId ?? null,
+      userId: effectiveUserId,
     };
 
+    const previousMonthlySpend =
+      transaction.type === 'expense'
+        ? await analyticsRepository.getMonthlyCategorySpend(transaction.category, {
+          referenceDate: transaction.date,
+          userId: effectiveUserId,
+        })
+        : 0;
+
     const id = await transactionsRepository.insertTransaction(ownedTransaction);
+
+    if (transaction.type === 'expense') {
+      const matchingBudget = await budgetsRepository.getBudgetByCategory(
+        transaction.category,
+        effectiveUserId,
+      );
+
+      if (matchingBudget && matchingBudget.limitAmount > 0) {
+        const currentMonthlySpend = await analyticsRepository.getMonthlyCategorySpend(
+          transaction.category,
+          {
+            referenceDate: transaction.date,
+            userId: effectiveUserId,
+          },
+        );
+
+        const hadBudgetHeadroom = previousMonthlySpend <= matchingBudget.limitAmount;
+        const nowExceededBudget = currentMonthlySpend > matchingBudget.limitAmount;
+
+        if (hadBudgetHeadroom && nowExceededBudget) {
+          const percentage = Math.round((currentMonthlySpend / matchingBudget.limitAmount) * 100);
+          showWarningToast(
+            `Budget exceeded: ${transaction.category}`,
+            `${formatMoney(currentMonthlySpend, settings.currencySymbol)} spent of ${formatMoney(matchingBudget.limitAmount, settings.currencySymbol)} (${percentage}%).`,
+            { duration: 5200 },
+          );
+        }
+      }
+    }
+
     await loadTransactions();
     return id;
   }
