@@ -66,7 +66,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
     : undefined;
   const dailyTipIndex = getDailyTipIndex(new Date(), moneySavingTips.length);
   const dailyTip = moneySavingTips[dailyTipIndex];
-  const recentTransactions = transactions.transactions.slice(0, 5);
+  const recentTransactions = transactions.transactions.slice(0, 3);
 
   async function refreshHome(): Promise<void> {
     await Promise.all([transactions.loadTransactions(), wallets.loadWallets(), budgets.loadBudgets()]);

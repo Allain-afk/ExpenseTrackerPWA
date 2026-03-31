@@ -64,6 +64,20 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
+    version: '1.3.5',
+    title: 'Analytics & Sync Improvements',
+    description: [
+      'Added a reset-password screen with email-driven recovery flow.',
+      'Introduced analytics insights with budgets syncing support.',
+      'Trimmed Recent Transactions to three items for a cleaner dashboard.',
+    ],
+    accent: '#0f766e',
+    badgeBackground: 'rgba(15, 118, 110, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
     version: '1.3.4',
     title: 'Transaction UI Balance & Small Fixes',
     description: [
@@ -75,7 +89,6 @@ const versionHistory: Array<{
     badgeBackground: 'rgba(37, 99, 235, 0.12)',
     surface:
       'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
-    latest: true,
   },
   {
     version: '1.3.3',
