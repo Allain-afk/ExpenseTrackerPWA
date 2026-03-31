@@ -235,6 +235,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const wallets = useWallets();
   const expenseGroups = useExpenseGroups();
   const budgets = useBudgets();
+  const syncIntervalMs = 5 * 60 * 1000;
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [status, setStatus] = useState<SyncStatus>(() => (navigator.onLine ? 'idle' : 'offline'));
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -642,10 +643,49 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     const timer = window.setInterval(() => {
       void syncNow({ silent: true });
-    }, 30000);
+    }, syncIntervalMs);
 
     return () => window.clearInterval(timer);
-  }, [isOnline, syncNow, user]);
+  }, [isOnline, syncIntervalMs, syncNow, user]);
+
+  const hasPendingLocalChanges = useMemo(() => {
+    if (!user) {
+      return false;
+    }
+
+    if (!transactions.isLoaded || !wallets.isLoaded || !expenseGroups.isLoaded || !budgets.isLoaded) {
+      return false;
+    }
+
+    return (
+      transactions.transactions.some((transaction) => !transaction.isSynced)
+      || wallets.wallets.some((wallet) => !wallet.isSynced)
+      || expenseGroups.groups.some((group) => !group.isSynced)
+      || budgets.budgets.some((budget) => !budget.isSynced)
+    );
+  }, [
+    budgets.budgets,
+    budgets.isLoaded,
+    expenseGroups.groups,
+    expenseGroups.isLoaded,
+    transactions.isLoaded,
+    transactions.transactions,
+    user,
+    wallets.isLoaded,
+    wallets.wallets,
+  ]);
+
+  useEffect(() => {
+    if (!isOnline || !user || !isConfigured) {
+      return;
+    }
+
+    if (!hasPendingLocalChanges) {
+      return;
+    }
+
+    void syncNow({ silent: true });
+  }, [hasPendingLocalChanges, isConfigured, isOnline, syncNow, user]);
 
   useEffect(() => {
     if (!isOnline || !user) {

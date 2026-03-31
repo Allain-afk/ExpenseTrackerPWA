@@ -69,6 +69,7 @@ const versionHistory: Array<{
     description: [
       'Added a reset-password screen with email-driven recovery flow.',
       'Introduced analytics insights with budgets syncing support.',
+      'Adjusted background sync to run every 5 minutes and auto-sync when local changes are detected.',
       'Trimmed Recent Transactions to three items for a cleaner dashboard.',
     ],
     accent: '#0f766e',
