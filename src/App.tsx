@@ -11,6 +11,7 @@ import { ManageWalletsScreen } from './screens/ManageWalletsScreen';
 import { TransactionFormScreen } from './screens/TransactionFormScreen';
 import { GroupFormScreen } from './screens/GroupFormScreen';
 import { WalletFormScreen } from './screens/WalletFormScreen';
+import { ResetPasswordScreen } from './screens/ResetPasswordScreen';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { AppToaster } from './components/common/AppToaster';
 import { SyncAdoptionModal } from './components/common/SyncAdoptionModal';
@@ -63,6 +64,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<SplashScreen />} />
+      <Route path="/reset-password" element={<ResetPasswordScreen />} />
       <Route
         path="/setup"
         element={

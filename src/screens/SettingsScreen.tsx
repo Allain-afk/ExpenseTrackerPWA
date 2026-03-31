@@ -411,6 +411,20 @@ export function SettingsScreen() {
     }
   }
 
+  async function handleForgotPassword(): Promise<void> {
+    if (!authEmail.trim()) {
+      showErrorToast('Email required', 'Please enter your email address to reset your password.');
+      return;
+    }
+
+    try {
+      await auth.sendPasswordResetEmail(authEmail.trim());
+      showSuccessToast('Reset link sent', 'Check your email for instructions to reset your password.');
+    } catch (error) {
+      showErrorToast('Reset failed', (error as Error).message);
+    }
+  }
+
   async function signOutCloud(): Promise<void> {
     try {
       await auth.signOut();
@@ -885,6 +899,16 @@ export function SettingsScreen() {
               type="password"
               value={authPassword}
             />
+            {authMode === 'signin' && (
+              <button 
+                className="text-button" 
+                onClick={() => void handleForgotPassword()}
+                style={{ alignSelf: 'flex-start', marginTop: '0.5rem', fontSize: '0.8em', padding: 0 }}
+                type="button"
+              >
+                Forgot password?
+              </button>
+            )}
           </div>
 
           {auth.authError ? <p className="error-text">{auth.authError}</p> : null}

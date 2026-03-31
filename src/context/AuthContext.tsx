@@ -16,6 +16,8 @@ export interface AuthContextValue {
   session: Session | null;
   signUpWithPassword: (email: string, password: string, displayName?: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
   syncDisplayName: (displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   clearAuthError: () => void;
@@ -140,6 +142,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function sendPasswordResetEmail(email: string): Promise<void> {
+    if (!supabase || !isSupabaseConfigured) {
+      setAuthError('Supabase is not configured.');
+      return;
+    }
+
+    setAuthError(null);
+    const baseUrl = getEmailRedirectUrl() || window.location.origin;
+    // ensure no trailing slash before appending path
+    const redirectTo = baseUrl.endsWith('/') ? `${baseUrl}reset-password` : `${baseUrl}/reset-password`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) {
+      const message = getErrorMessage(error);
+      setAuthError(message);
+      throw new Error(message);
+    }
+  }
+
+  async function updatePassword(password: string): Promise<void> {
+    if (!supabase || !isSupabaseConfigured) {
+      setAuthError('Supabase is not configured.');
+      return;
+    }
+
+    setAuthError(null);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      const message = getErrorMessage(error);
+      setAuthError(message);
+      throw new Error(message);
+    }
+  }
+
   async function syncDisplayName(displayName: string): Promise<void> {
     if (!supabase || !isSupabaseConfigured) {
       return;
@@ -187,6 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       signUpWithPassword,
       signInWithPassword,
+      sendPasswordResetEmail,
+      updatePassword,
       syncDisplayName,
       signOut,
       clearAuthError: () => setAuthError(null),
