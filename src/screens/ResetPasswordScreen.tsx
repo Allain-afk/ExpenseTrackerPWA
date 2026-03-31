@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MdCheckCircle, MdLockReset, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import { useAuth } from '../hooks/useAuth';
 import { PageHeader } from '../components/common/PageHeader';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
+import styles from './ResetPasswordScreen.module.css';
 
 export function ResetPasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const auth = useAuth();
@@ -30,44 +33,78 @@ export function ResetPasswordScreen() {
   }
 
   return (
-    <div className="screen-container">
-      <PageHeader backTo="/" title="Reset Password" />
+    <main className={styles.screen}>
+      <div className={styles.panel}>
+        <PageHeader backTo="/" title="Reset Password" />
 
-      <main className="screen-content padding-b-safe">
-        <section className="section-block">
-          <div className="section-header">
-            <h2 className="section-title">Setup New Password</h2>
-            <p className="section-subtitle">
-              Please enter your new password below.
-            </p>
+        <section className={`app-card ${styles.hero}`}>
+          <div className={styles.heroRow}>
+            <span className={`icon-chip ${styles.heroIcon}`}>
+              <MdLockReset size={22} />
+            </span>
+            <div>
+              <p className="eyebrow">Security</p>
+              <h2 className={styles.heroTitle}>Set up a new password</h2>
+            </div>
           </div>
+          <p className={styles.heroSubtitle}>
+            Use a strong password to protect your synced data across devices.
+          </p>
+        </section>
 
-          <form className="app-card form-container" onSubmit={handleSubmit}>
-            <div className="form-field">
-              <label className="field-label" htmlFor="new-password">
-                New Password
-              </label>
+        <form className={`app-card ${styles.formCard}`} onSubmit={handleSubmit}>
+          <div className="form-field">
+            <label className="field-label" htmlFor="new-password">
+              New Password
+            </label>
+            <div className={styles.inputRow}>
+              <span className={`icon-chip ${styles.inputIcon}`}>
+                <MdLockReset size={18} />
+              </span>
               <input
                 autoComplete="new-password"
                 className="text-input"
                 id="new-password"
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
-                type="password"
+                type={isPasswordVisible ? 'text' : 'password'}
                 value={newPassword}
               />
-            </div>
-
-            {auth.authError ? <p className="error-text">{auth.authError}</p> : null}
-
-            <div className="form-actions">
-              <button className="primary-button" disabled={isSubmitting} type="submit">
-                {isSubmitting ? 'Updating...' : 'Update Password'}
+              <button
+                aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+                aria-pressed={isPasswordVisible}
+                className={styles.toggleButton}
+                onClick={() => setIsPasswordVisible((current) => !current)}
+                type="button"
+              >
+                {isPasswordVisible ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
               </button>
             </div>
-          </form>
-        </section>
-      </main>
-    </div>
+            <ul className={styles.helperList}>
+              <li className={styles.helperItem}>
+                <MdCheckCircle size={16} />
+                At least 8 characters
+              </li>
+              <li className={styles.helperItem}>
+                <MdCheckCircle size={16} />
+                Mix letters and numbers for strength
+              </li>
+            </ul>
+          </div>
+
+          {auth.authError ? <p className="error-text">{auth.authError}</p> : null}
+
+          <div className={styles.actionRow}>
+            <button
+              className={`primary-button ${styles.fullWidthButton}`}
+              disabled={isSubmitting}
+              type="submit"
+            >
+              {isSubmitting ? 'Updating...' : 'Update Password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
   );
 }

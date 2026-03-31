@@ -8,6 +8,7 @@ import {
   MdCreditCard,
   MdDeleteForever,
   MdInfoOutline,
+  MdLockReset,
   MdMessage,
   MdNotificationsActive,
   MdPalette,
@@ -68,9 +69,11 @@ const versionHistory: Array<{
     title: 'Analytics & Sync Improvements',
     description: [
       'Added a reset-password screen with email-driven recovery flow.',
+      'Refined the reset-password UI with a stronger layout and show/hide password control.',
       'Introduced analytics insights with budgets syncing support.',
       'Adjusted background sync to run every 5 minutes and auto-sync when local changes are detected.',
       'Trimmed Recent Transactions to three items for a cleaner dashboard.',
+      'Added a Security section in Settings to request password reset emails.',
     ],
     accent: '#0f766e',
     badgeBackground: 'rgba(15, 118, 110, 0.12)',
@@ -228,6 +231,8 @@ export function SettingsScreen() {
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [isVersionOpen, setIsVersionOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
+  const [isSecurityOpen, setIsSecurityOpen] = useState(false);
+  const [securityEmail, setSecurityEmail] = useState('');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [authEmail, setAuthEmail] = useState('');
@@ -434,6 +439,25 @@ export function SettingsScreen() {
     try {
       await auth.sendPasswordResetEmail(authEmail.trim());
       showSuccessToast('Reset link sent', 'Check your email for instructions to reset your password.');
+    } catch (error) {
+      showErrorToast('Reset failed', (error as Error).message);
+    }
+  }
+
+  async function requestPasswordReset(): Promise<void> {
+    if (!securityEmail.trim()) {
+      showErrorToast('Email required', 'Please enter the email address to reset the password.');
+      return;
+    }
+
+    try {
+      await auth.sendPasswordResetEmail(securityEmail.trim());
+      setIsSecurityOpen(false);
+      setSecurityEmail('');
+      showSuccessToast(
+        'Reset link sent',
+        'If the email exists, a password reset link has been sent.',
+      );
     } catch (error) {
       showErrorToast('Reset failed', (error as Error).message);
     }
@@ -684,6 +708,27 @@ export function SettingsScreen() {
           </button>
         </SectionList>
 
+        <SectionList headerText="Security">
+          <button
+            className="inset-item"
+            onClick={() => {
+              setSecurityEmail(auth.user?.email ?? '');
+              setIsSecurityOpen(true);
+            }}
+            type="button"
+          >
+            <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+              <MdLockReset size={22} />
+            </span>
+            <span className="inset-item-content">
+              <span className="inset-title">Request a Password Reset</span>
+              <span className="inset-subtitle">
+                Send a reset link to your email address (expires in 1 hour)
+              </span>
+            </span>
+          </button>
+        </SectionList>
+
         <SectionList headerText="About">
           <button className="inset-item" onClick={() => setIsVersionOpen(true)} type="button">
             <span className="icon-chip accent-chip">
@@ -823,6 +868,37 @@ export function SettingsScreen() {
             type="button"
           >
             Save
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        description="We will send a reset link if the address is registered."
+        onClose={() => setIsSecurityOpen(false)}
+        open={isSecurityOpen}
+        title="Request Password Reset"
+      >
+        <div className="stack-form">
+          <div className="form-field">
+            <label className="field-label" htmlFor="security-email-input">
+              Email Address
+            </label>
+            <input
+              autoComplete="email"
+              className="text-input"
+              id="security-email-input"
+              onChange={(event) => setSecurityEmail(event.target.value)}
+              placeholder="you@example.com"
+              type="email"
+              value={securityEmail}
+            />
+          </div>
+          <button
+            className="primary-button"
+            onClick={() => void requestPasswordReset()}
+            type="button"
+          >
+            Send Reset Email
           </button>
         </div>
       </Modal>
