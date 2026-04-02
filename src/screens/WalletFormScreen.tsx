@@ -54,7 +54,7 @@ export function WalletFormScreen() {
                 }
               : undefined
           }
-          onSubmit={async ({ colorValue, isHidden, name, type }) => {
+          onSubmit={async ({ colorValue, isHidden, name, type, lowBalanceThreshold }) => {
             try {
               if (existingWallet) {
                 await wallets.updateWallet({
@@ -63,9 +63,10 @@ export function WalletFormScreen() {
                   type,
                   colorValue,
                   isHidden,
+                  lowBalanceThreshold,
                 });
               } else {
-                await wallets.addWallet({ name, type, colorValue, isHidden });
+                await wallets.addWallet({ name, type, colorValue, isHidden, lowBalanceThreshold });
               }
 
               showSuccessToast(

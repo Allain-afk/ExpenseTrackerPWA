@@ -37,6 +37,7 @@ export interface Wallet extends SyncMetadata {
   colorValue: number;
   isHidden: boolean;
   sortOrder?: number;
+  lowBalanceThreshold?: number | null;
 }
 
 export interface Budget extends SyncMetadata {

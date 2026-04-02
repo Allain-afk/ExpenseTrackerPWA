@@ -65,6 +65,22 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
+    version: '1.4.0',
+    title: 'Per-Wallet Low Balance Limits',
+    description: [
+      'Added individual low-balance thresholds for each wallet card.',
+      'Enable a custom limit directly on the Add / Edit Card screen.',
+      'Wallets without a custom limit continue to use the global fallback from Settings.',
+      'Low-balance alerts now fire per wallet with the wallet name shown in the notification.',
+      'Global Threshold Amount label updated to clarify it is a fallback.',
+    ],
+    accent: '#0f766e',
+    badgeBackground: 'rgba(15, 118, 110, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
     version: '1.3.5',
     title: 'Analytics & Sync Improvements',
     description: [
@@ -79,7 +95,7 @@ const versionHistory: Array<{
     badgeBackground: 'rgba(15, 118, 110, 0.12)',
     surface:
       'linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
-    latest: true,
+    latest: undefined,
   },
   {
     version: '1.3.4',
@@ -668,8 +684,9 @@ export function SettingsScreen() {
                   <MdWallet size={22} />
                 </span>
                 <span className="inset-item-content">
-                  <span className="inset-title">Threshold Amount</span>
+                  <span className="inset-title">Global Threshold Amount</span>
                   <span className="inset-subtitle">
+                    Fallback for wallets without a custom limit —{' '}
                     {formatMoney(settings.lowBalanceThreshold, settings.currencySymbol)}
                   </span>
                 </span>
@@ -736,7 +753,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.3.5</span>
+              <span className="inset-subtitle">1.4.0</span>
             </span>
           </button>
           <div className="inset-item">

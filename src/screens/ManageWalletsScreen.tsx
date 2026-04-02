@@ -38,12 +38,14 @@ import { formatMoney, numberToColorHex } from '../lib/utils/format';
 import type { Wallet } from '../types/models';
 import styles from './ManageWalletsScreen.module.css';
 
+
 interface SortableWalletRowProps {
   wallet: Wallet;
   balanceLabel: string;
+  currencySymbol: string;
 }
 
-function SortableWalletRow({ wallet, balanceLabel }: SortableWalletRowProps) {
+function SortableWalletRow({ wallet, balanceLabel, currencySymbol }: SortableWalletRowProps) {
   const {
     attributes,
     listeners,
@@ -80,6 +82,11 @@ function SortableWalletRow({ wallet, balanceLabel }: SortableWalletRowProps) {
               <span className={`tag ${styles.hiddenTag}`}>
                 <MdVisibilityOff size={13} />
                 Hidden on Home
+              </span>
+            ) : null}
+            {wallet.lowBalanceThreshold != null ? (
+              <span className={`tag ${styles.hiddenTag}`} style={{ background: 'rgba(15,118,110,0.10)', color: '#0f766e' }}>
+                Limit: {formatMoney(wallet.lowBalanceThreshold, currencySymbol)}
               </span>
             ) : null}
           </div>
@@ -279,6 +286,7 @@ export function ManageWalletsScreen() {
                         transactions.getWalletBalance(wallet.id!),
                         settings.currencySymbol,
                       )}
+                      currencySymbol={settings.currencySymbol}
                       key={wallet.id}
                       wallet={wallet}
                     />

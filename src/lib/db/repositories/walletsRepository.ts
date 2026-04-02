@@ -10,6 +10,7 @@ interface WalletRow {
   colorValue: number;
   isHidden: number;
   sortOrder: number;
+  low_balance_threshold: number | null;
   uuid: string | null;
   user_id: string | null;
   is_synced: number;
@@ -24,6 +25,7 @@ function mapWallet(row: WalletRow): Wallet {
     colorValue: Number(row.colorValue),
     isHidden: Boolean(Number(row.isHidden ?? 0)),
     sortOrder: Number(row.sortOrder ?? 0),
+    lowBalanceThreshold: row.low_balance_threshold ?? null,
     uuid: row.uuid ?? undefined,
     userId: row.user_id,
     isSynced: Boolean(Number(row.is_synced ?? 0)),
@@ -48,16 +50,18 @@ export function createWalletsRepository(client: DatabaseClient) {
           colorValue,
           isHidden,
           sortOrder,
+          low_balance_threshold,
           uuid,
           user_id,
           is_synced,
           last_modified
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         wallet.name,
         wallet.type,
         wallet.colorValue,
         wallet.isHidden ? 1 : 0,
         Number(sortOrderRow?.nextSortOrder ?? 0),
+        wallet.lowBalanceThreshold ?? null,
         walletUuid,
         wallet.userId ?? null,
         0,
@@ -92,6 +96,7 @@ export function createWalletsRepository(client: DatabaseClient) {
              type = ?,
              colorValue = ?,
              isHidden = ?,
+             low_balance_threshold = ?,
              uuid = COALESCE(uuid, ?),
              is_synced = 0,
              last_modified = ?
@@ -100,6 +105,7 @@ export function createWalletsRepository(client: DatabaseClient) {
         wallet.type,
         wallet.colorValue,
         wallet.isHidden ? 1 : 0,
+        wallet.lowBalanceThreshold ?? null,
         walletUuid,
         lastModified,
         wallet.id ?? null,

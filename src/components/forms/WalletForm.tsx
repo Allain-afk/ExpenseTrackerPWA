@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MdVisibility, MdVisibilityOff } from 'react-icons/md';
+import { MdNotificationsActive, MdNotificationsOff, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import type { Wallet } from '../../types/models';
 import { walletColors, walletTypes } from '../../lib/constants/settings';
 import { numberToColorHex } from '../../lib/utils/format';
@@ -9,7 +9,7 @@ interface WalletFormProps {
   submitLabel: string;
   loading?: boolean;
   deleteBusy?: boolean;
-  onSubmit: (input: { name: string; type: string; colorValue: number; isHidden: boolean }) => Promise<void>;
+  onSubmit: (input: { name: string; type: string; colorValue: number; isHidden: boolean; lowBalanceThreshold: number | null }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }
 
@@ -25,6 +25,14 @@ export function WalletForm({
   const [type, setType] = useState(initialWallet?.type ?? walletTypes[0]);
   const [colorValue, setColorValue] = useState(initialWallet?.colorValue ?? walletColors[0]);
   const [isHidden, setIsHidden] = useState(initialWallet?.isHidden ?? false);
+  const [hasCustomThreshold, setHasCustomThreshold] = useState(
+    initialWallet?.lowBalanceThreshold != null,
+  );
+  const [thresholdInput, setThresholdInput] = useState(
+    initialWallet?.lowBalanceThreshold != null
+      ? String(initialWallet.lowBalanceThreshold)
+      : '',
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -36,8 +44,18 @@ export function WalletForm({
       return;
     }
 
+    let lowBalanceThreshold: number | null = null;
+    if (hasCustomThreshold) {
+      const parsed = Number.parseFloat(thresholdInput);
+      if (Number.isNaN(parsed) || parsed < 0) {
+        setError('Please enter a valid threshold amount (0 or more).');
+        return;
+      }
+      lowBalanceThreshold = parsed;
+    }
+
     setError(null);
-    await onSubmit({ name: trimmedName, type, colorValue, isHidden });
+    await onSubmit({ name: trimmedName, type, colorValue, isHidden, lowBalanceThreshold });
   }
 
   return (
@@ -159,6 +177,65 @@ export function WalletForm({
         </div>
       </div>
 
+      <div className="app-card" style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div>
+            <p className="eyebrow">Notifications</p>
+            <h3 style={{ margin: '0.35rem 0 0' }}>Low Balance Alert</h3>
+            <p className="helper-text" style={{ marginTop: '0.35rem' }}>
+              {hasCustomThreshold
+                ? 'Alert fires when this wallet drops below your custom limit.'
+                : 'Using the global threshold from Settings as the fallback.'}
+            </p>
+          </div>
+          <button
+            className="secondary-button"
+            onClick={() => {
+              setHasCustomThreshold((current) => !current);
+              if (!hasCustomThreshold && !thresholdInput) {
+                setThresholdInput('');
+              }
+            }}
+            style={{
+              width: '100%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              minHeight: '3.25rem',
+              background: hasCustomThreshold ? 'var(--color-primary-soft)' : 'var(--color-surface)',
+              color: hasCustomThreshold ? 'var(--color-primary)' : 'var(--color-text)',
+              border: hasCustomThreshold
+                ? '1px solid var(--color-primary-border)'
+                : '1px solid var(--color-border)',
+            }}
+            type="button"
+          >
+            {hasCustomThreshold ? <MdNotificationsActive size={18} /> : <MdNotificationsOff size={18} />}
+            {hasCustomThreshold ? 'Custom Limit Enabled' : 'Use Global Threshold'}
+          </button>
+          {hasCustomThreshold ? (
+            <div className="form-field">
+              <label className="field-label" htmlFor="wallet-threshold">
+                Threshold Amount
+              </label>
+              <input
+                className="text-input"
+                id="wallet-threshold"
+                inputMode="decimal"
+                min="0"
+                onChange={(event) => setThresholdInput(event.target.value)}
+                placeholder="e.g. 500"
+                step="any"
+                type="number"
+                value={thresholdInput}
+              />
+            </div>
+          ) : null}
+          {error ? <p className="error-text">{error}</p> : null}
+        </div>
+      </div>
+
       <button className="primary-button" disabled={loading} type="submit">
         {loading ? 'Saving...' : submitLabel}
       </button>
@@ -174,5 +251,6 @@ export function WalletForm({
         </button>
       ) : null}
     </form>
+
   );
 }

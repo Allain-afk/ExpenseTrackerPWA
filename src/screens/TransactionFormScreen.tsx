@@ -395,7 +395,7 @@ export function TransactionFormScreen() {
               </p>
             </div>
 
-            <div className={styles.datePanel}>
+            <div className={styles.datePanelInner}>
               <div className={styles.dateHeading}>
                 <span className={`icon-chip ${styles.dateIcon}`}>
                   <MdCalendarToday size={22} />

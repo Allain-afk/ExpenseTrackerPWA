@@ -1,6 +1,6 @@
 import type { DatabaseClient } from './types';
 
-export const databaseVersion = 9;
+export const databaseVersion = 10;
 
 async function getUserVersion(client: DatabaseClient): Promise<number> {
   const [result] = await client.sql<{ user_version: number }>('PRAGMA user_version');
@@ -268,6 +268,12 @@ async function migrateToV9(client: DatabaseClient): Promise<void> {
   `);
 }
 
+async function migrateToV10(client: DatabaseClient): Promise<void> {
+  if (!(await columnExists(client, 'wallets', 'low_balance_threshold'))) {
+    await client.sql('ALTER TABLE wallets ADD COLUMN low_balance_threshold REAL');
+  }
+}
+
 const migrations = [
   migrateToV1,
   migrateToV2,
@@ -278,6 +284,7 @@ const migrations = [
   migrateToV7,
   migrateToV8,
   migrateToV9,
+  migrateToV10,
 ];
 
 export async function applyMigrations(client: DatabaseClient): Promise<void> {

@@ -174,15 +174,10 @@
   border-color: var(--color-primary-border);
 }
 
-.datePanel {
+.datePanelInner {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
-  border-radius: 1.25rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-soft);
-  overflow: hidden;
 }
 
 .dateIcon {
