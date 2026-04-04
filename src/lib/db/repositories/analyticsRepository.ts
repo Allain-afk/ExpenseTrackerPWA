@@ -12,10 +12,10 @@ interface DateRange {
   end: Date;
 }
 
-function monthRange(referenceDate: Date): { start: Date; end: Date } {
-  const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1, 0, 0, 0, 0);
-  const end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59, 999);
-  return { start, end };
+function toMonthKey(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 }
 
 function weekRange(referenceDate: Date): { start: Date; end: Date } {
@@ -142,7 +142,7 @@ export function createAnalyticsRepository(client: DatabaseClient) {
       await ensureDatabaseReady();
 
       const referenceDate = options?.referenceDate ?? new Date();
-      const { start: monthStart, end: monthEnd } = monthRange(referenceDate);
+      const monthKey = toMonthKey(referenceDate);
       const { start: weekStart, end: weekEnd } = weekRange(referenceDate);
       const userScope = toUserScope(options?.userId ?? null);
 
@@ -151,10 +151,9 @@ export function createAnalyticsRepository(client: DatabaseClient) {
          FROM transactions
          WHERE type = 'expense'
            AND ${userScope.clause}
-           AND date BETWEEN ? AND ?`,
+           AND SUBSTR(date, 1, 7) = ?`,
         ...userScope.params,
-        toSqlDateTime(monthStart),
-        toSqlDateTime(monthEnd),
+        monthKey,
       );
 
       const topCategoryRows = await client.sql<{ category: string; amount: number }>(
@@ -162,13 +161,12 @@ export function createAnalyticsRepository(client: DatabaseClient) {
          FROM transactions
          WHERE type = 'expense'
            AND ${userScope.clause}
-           AND date BETWEEN ? AND ?
+           AND SUBSTR(date, 1, 7) = ?
          GROUP BY category
          ORDER BY amount DESC
          LIMIT 3`,
         ...userScope.params,
-        toSqlDateTime(monthStart),
-        toSqlDateTime(monthEnd),
+        monthKey,
       );
 
       const [monthlyBudgetRow] = await client.sql<{ total_limit: number | null }>(
@@ -246,7 +244,7 @@ export function createAnalyticsRepository(client: DatabaseClient) {
     ): Promise<AnalyticsCategoryTotal[]> {
       await ensureDatabaseReady();
       const referenceDate = options?.referenceDate ?? new Date();
-      const { start, end } = monthRange(referenceDate);
+      const monthKey = toMonthKey(referenceDate);
       const userScope = toUserScope(options?.userId ?? null);
       const limit = Math.max(1, Math.floor(options?.limit ?? 3));
 
@@ -255,13 +253,12 @@ export function createAnalyticsRepository(client: DatabaseClient) {
          FROM transactions
          WHERE type = 'expense'
            AND ${userScope.clause}
-           AND date BETWEEN ? AND ?
+           AND SUBSTR(date, 1, 7) = ?
          GROUP BY category
          ORDER BY amount DESC
          LIMIT ?`,
         ...userScope.params,
-        toSqlDateTime(start),
-        toSqlDateTime(end),
+        monthKey,
         limit,
       );
 
@@ -280,7 +277,7 @@ export function createAnalyticsRepository(client: DatabaseClient) {
     ): Promise<number> {
       await ensureDatabaseReady();
       const referenceDate = options?.referenceDate ?? new Date();
-      const { start, end } = monthRange(referenceDate);
+      const monthKey = toMonthKey(referenceDate);
       const userScope = toUserScope(options?.userId ?? null);
 
       const [row] = await client.sql<{ total: number | null }>(
@@ -289,11 +286,10 @@ export function createAnalyticsRepository(client: DatabaseClient) {
          WHERE type = 'expense'
            AND category = ?
            AND ${userScope.clause}
-           AND date BETWEEN ? AND ?`,
+           AND SUBSTR(date, 1, 7) = ?`,
         category,
         ...userScope.params,
-        toSqlDateTime(start),
-        toSqlDateTime(end),
+        monthKey,
       );
 
       return Number(row?.total ?? 0);

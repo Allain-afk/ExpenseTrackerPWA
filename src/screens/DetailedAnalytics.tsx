@@ -30,14 +30,40 @@ function toDayLabel(point: DailySpendPoint): string {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(point.date);
 }
 
+function toMonthKey(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+function fromMonthKey(monthKey: string): Date {
+  const [yearText, monthText] = monthKey.split('-');
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const now = new Date();
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  return new Date(year, month - 1, 1);
+}
+
+function addMonths(base: Date, delta: number): Date {
+  return new Date(base.getFullYear(), base.getMonth() + delta, 1);
+}
+
 export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
   const { user } = useAuth();
   const budgets = useBudgets();
+  const today = useMemo(() => new Date(), []);
+  const currentMonthStart = useMemo(() => new Date(today.getFullYear(), today.getMonth(), 1), [today]);
 
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [monthlyTopCategories, setMonthlyTopCategories] = useState<AnalyticsCategoryTotal[]>([]);
-  const [thirtyDaySeries, setThirtyDaySeries] = useState<DailySpendPoint[]>([]);
+  const [monthlySeries, setMonthlySeries] = useState<DailySpendPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedMonthKey, setSelectedMonthKey] = useState(() => toMonthKey(new Date()));
   const [selectedCategory, setSelectedCategory] = useState<(typeof expenseCategories)[number]>(
     expenseCategories[0],
   );
@@ -49,25 +75,62 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
     return [...budgets.budgets].sort((a, b) => a.category.localeCompare(b.category));
   }, [budgets.budgets]);
 
+  const selectedMonth = useMemo(() => fromMonthKey(selectedMonthKey), [selectedMonthKey]);
+  const monthLabel = useMemo(() => {
+    return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(selectedMonth);
+  }, [selectedMonth]);
+  const isCurrentMonth = selectedMonth.getFullYear() === today.getFullYear()
+    && selectedMonth.getMonth() === today.getMonth();
+  const analyticsReferenceDate = useMemo(() => {
+    if (isCurrentMonth) {
+      return today;
+    }
+
+    return new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0, 23, 59, 59, 999);
+  }, [isCurrentMonth, selectedMonth, today]);
+  const monthlyChartDays = isCurrentMonth
+    ? today.getDate()
+    : new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
+
+  const monthOptions = useMemo(() => {
+    return Array.from({ length: 18 }, (_, index) => {
+      const monthDate = addMonths(currentMonthStart, -index);
+      const value = toMonthKey(monthDate);
+      const label = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(monthDate);
+      return { label, value };
+    });
+  }, [currentMonthStart]);
+
   const loadAnalyticsData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [nextSummary, nextTopCategories, nextThirtyDays] = await Promise.all([
-        analyticsRepository.getAnalyticsSummary({ userId: user?.id ?? null }),
-        analyticsRepository.getTopCategories({ userId: user?.id ?? null, limit: 5 }),
-        analyticsRepository.getDailySpendSeries({ userId: user?.id ?? null, days: 30 }),
+      const [nextSummary, nextTopCategories, nextMonthlySeries] = await Promise.all([
+        analyticsRepository.getAnalyticsSummary({
+          referenceDate: analyticsReferenceDate,
+          userId: user?.id ?? null,
+        }),
+        analyticsRepository.getTopCategories({
+          referenceDate: analyticsReferenceDate,
+          userId: user?.id ?? null,
+          limit: 5,
+        }),
+        analyticsRepository.getDailySpendSeries({
+          referenceDate: analyticsReferenceDate,
+          userId: user?.id ?? null,
+          days: monthlyChartDays,
+        }),
       ]);
 
       setSummary(nextSummary);
       setMonthlyTopCategories(nextTopCategories);
-      setThirtyDaySeries(nextThirtyDays);
+      setMonthlySeries(nextMonthlySeries);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load analytics data.';
       showErrorToast('Analytics unavailable', message);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [analyticsReferenceDate, monthlyChartDays, user?.id]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -81,7 +144,7 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [budgets.budgets, loadAnalyticsData]);
+  }, [loadAnalyticsData]);
 
   async function handleBudgetSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,10 +224,25 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
     value: point.total,
   }));
 
-  const thirtyDayChartData = thirtyDaySeries.map((point) => ({
+  const monthlyChartData = monthlySeries.map((point) => ({
     day: toDayLabel(point),
     value: point.total,
   }));
+
+  const selectedMonthOptionIndex = monthOptions.findIndex((option) => option.value === selectedMonthKey);
+  const canGoToPreviousMonth = selectedMonthOptionIndex >= 0 && selectedMonthOptionIndex < monthOptions.length - 1;
+  const canGoToNextMonth = selectedMonthOptionIndex > 0;
+
+  const moveMonth = (direction: 'previous' | 'next') => {
+    const delta = direction === 'previous' ? -1 : 1;
+    const nextMonth = addMonths(selectedMonth, delta);
+    const nextKey = toMonthKey(nextMonth);
+    const exists = monthOptions.some((option) => option.value === nextKey);
+
+    if (exists) {
+      setSelectedMonthKey(nextKey);
+    }
+  };
 
   return (
     <main className="app-page">
@@ -175,10 +253,54 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
           title="Detailed Analytics"
         />
 
+        <section className={`app-card ${styles.monthControlsCard}`}>
+          <div className={styles.monthHeaderRow}>
+            <div>
+              <p className="eyebrow">Viewing Month</p>
+              <h2 className={styles.monthTitle}>{monthLabel}</h2>
+            </div>
+            <div className={styles.monthNavButtons}>
+              <button
+                className={`secondary-button ${styles.monthNavButton}`}
+                disabled={!canGoToPreviousMonth}
+                onClick={() => moveMonth('previous')}
+                type="button"
+              >
+                Previous
+              </button>
+              <button
+                className={`secondary-button ${styles.monthNavButton}`}
+                disabled={!canGoToNextMonth}
+                onClick={() => moveMonth('next')}
+                type="button"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          <div className="form-field">
+            <label className="field-label" htmlFor="analytics-month-select">
+              Jump to month
+            </label>
+            <select
+              className="select-input"
+              id="analytics-month-select"
+              onChange={(event) => setSelectedMonthKey(event.target.value)}
+              value={selectedMonthKey}
+            >
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+
         <section className={`app-card ${styles.chartCard}`}>
           <div className={styles.summaryGrid}>
             <div className={styles.summaryTile}>
-              <p className={styles.summaryLabel}>This month spent</p>
+              <p className={styles.summaryLabel}>Selected month spent</p>
               <p className={styles.summaryValue}>
                 {formatMoney(summary?.monthlyTotal ?? 0, currencySymbol)}
               </p>
@@ -201,7 +323,7 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
         </section>
 
         <section className={`app-card ${styles.chartCard}`}>
-          <h2 className={styles.chartTitle}>Last 7 days spending</h2>
+          <h2 className={styles.chartTitle}>Last 7 days in {monthLabel}</h2>
           <div className={styles.chartFrame}>
             <ResponsiveContainer height="100%" width="100%">
               <BarChart data={weeklyChartData}>
@@ -214,10 +336,10 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
         </section>
 
         <section className={`app-card ${styles.chartCard}`}>
-          <h2 className={styles.chartTitle}>Last 30 days spending</h2>
+          <h2 className={styles.chartTitle}>Daily spending in {monthLabel}</h2>
           <div className={styles.chartFrame}>
             <ResponsiveContainer height="100%" width="100%">
-              <BarChart data={thirtyDayChartData}>
+              <BarChart data={monthlyChartData}>
                 <XAxis axisLine={false} dataKey="day" hide tickLine={false} />
                 <Tooltip formatter={(value) => formatTooltipCurrency(value, currencySymbol)} />
                 <Bar dataKey="value" fill="var(--color-secondary)" radius={[5, 5, 0, 0]} />
@@ -227,7 +349,7 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
         </section>
 
         <section className={`app-card ${styles.chartCard}`}>
-          <h2 className={styles.chartTitle}>Top categories this month</h2>
+          <h2 className={styles.chartTitle}>Top categories in {monthLabel}</h2>
           <div className="inset-list">
             {monthlyTopCategories.length ? (
               monthlyTopCategories.map((item) => (
