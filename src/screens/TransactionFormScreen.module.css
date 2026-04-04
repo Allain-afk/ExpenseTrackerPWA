@@ -222,6 +222,24 @@
   width: 100%;
   max-width: 100%;
   min-height: 3.25rem;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .dateInput {
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: left;
+  }
+
+  .dateInput::-webkit-date-and-time-value {
+    text-align: left;
+  }
+
+  .dateInput::-webkit-datetime-edit {
+    padding: 0;
+  }
 }
 
 .submitBar {
