@@ -174,9 +174,30 @@ export function ManageWalletsScreen() {
     return [...ordered, ...walletsWithoutId];
   }, [wallets.wallets, sortableWalletIds]);
 
-  const totalBalance = wallets.wallets.reduce((sum, wallet) => {
-    return sum + transactions.getWalletBalance(wallet.id!);
-  }, 0);
+  const walletBalancesById = useMemo(() => {
+    const balances = new Map<number, number>();
+
+    for (const wallet of wallets.wallets) {
+      if (typeof wallet.id !== 'number') {
+        continue;
+      }
+
+      balances.set(wallet.id, transactions.getWalletBalance(wallet.id));
+    }
+
+    return balances;
+  }, [wallets.wallets, transactions.getWalletBalance]);
+
+  const totalBalance = useMemo(() => {
+    let total = 0;
+
+    for (const balance of walletBalancesById.values()) {
+      total += balance;
+    }
+
+    return total;
+  }, [walletBalancesById]);
+
   const mainWalletBalance = wallets.wallets.length === 0 ? transactions.balance : totalBalance;
   const cardCount = wallets.wallets.length + 1;
   const hiddenCount =
@@ -282,10 +303,7 @@ export function ManageWalletsScreen() {
                 <div className={styles.walletList}>
                   {orderedWallets.map((wallet) => (
                     <SortableWalletRow
-                      balanceLabel={formatMoney(
-                        transactions.getWalletBalance(wallet.id!),
-                        settings.currencySymbol,
-                      )}
+                      balanceLabel={formatMoney(walletBalancesById.get(wallet.id ?? -1) ?? 0, settings.currencySymbol)}
                       currencySymbol={settings.currencySymbol}
                       key={wallet.id}
                       wallet={wallet}

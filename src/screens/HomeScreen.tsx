@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   MdAccountBalanceWallet,
@@ -51,12 +51,34 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
   const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
   const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
-  const visibleWallets = wallets.wallets.filter((wallet) => !wallet.isHidden);
+  const visibleWallets = useMemo(() => {
+    return wallets.wallets.filter((wallet) => !wallet.isHidden);
+  }, [wallets.wallets]);
   const hiddenWalletCount = wallets.wallets.length - visibleWallets.length;
 
-  const totalWalletBalance = wallets.wallets.reduce((sum, wallet) => {
-    return sum + transactions.getWalletBalance(wallet.id!);
-  }, 0);
+  const walletBalancesById = useMemo(() => {
+    const balances = new Map<number, number>();
+
+    for (const wallet of wallets.wallets) {
+      if (typeof wallet.id !== 'number') {
+        continue;
+      }
+
+      balances.set(wallet.id, transactions.getWalletBalance(wallet.id));
+    }
+
+    return balances;
+  }, [wallets.wallets, transactions.getWalletBalance]);
+
+  const totalWalletBalance = useMemo(() => {
+    let total = 0;
+
+    for (const balance of walletBalancesById.values()) {
+      total += balance;
+    }
+
+    return total;
+  }, [walletBalancesById]);
 
   const mainWalletBalance =
     wallets.wallets.length === 0 ? transactions.balance : totalWalletBalance;
@@ -144,7 +166,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
                 </div>
                 <p className={styles.walletBalanceLabel}>Available Balance</p>
                 <h2 className={styles.walletBalance}>
-                  {formatMoney(transactions.getWalletBalance(wallet.id!), currencySymbol)}
+                  {formatMoney(walletBalancesById.get(wallet.id ?? -1) ?? 0, currencySymbol)}
                 </h2>
                 <div className={styles.walletFooter}>
                   <div>

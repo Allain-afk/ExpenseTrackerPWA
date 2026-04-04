@@ -40,24 +40,84 @@ export function WalletsProvider({ children }: { children: ReactNode }) {
     };
 
     const id = await walletsRepository.insertWallet(ownedWallet);
-    await loadWallets();
+    const maxSortOrder = wallets.reduce((max, currentWallet) => {
+      return Math.max(max, Number(currentWallet.sortOrder ?? 0));
+    }, -1);
+
+    setWallets((previousWallets) => {
+      const nextWallet: Wallet = {
+        ...ownedWallet,
+        id,
+        sortOrder: maxSortOrder + 1,
+      };
+
+      return [...previousWallets, nextWallet];
+    });
     return id;
   }
 
   async function updateWallet(wallet: Wallet): Promise<void> {
     await walletsRepository.updateWallet(wallet);
-    await loadWallets();
+
+    setWallets((previousWallets) => {
+      return previousWallets.map((previousWallet) => {
+        if (previousWallet.id !== wallet.id) {
+          return previousWallet;
+        }
+
+        return {
+          ...previousWallet,
+          ...wallet,
+        };
+      });
+    });
   }
 
   async function reorderWallets(walletIds: number[]): Promise<void> {
     await walletsRepository.saveWalletOrder(walletIds);
-    await loadWallets();
+
+    setWallets((previousWallets) => {
+      const orderMap = new Map<number, number>();
+      for (const [index, walletId] of walletIds.entries()) {
+        orderMap.set(walletId, index);
+      }
+
+      return previousWallets
+        .map((wallet) => {
+          if (typeof wallet.id !== 'number') {
+            return wallet;
+          }
+
+          const nextOrder = orderMap.get(wallet.id);
+          if (typeof nextOrder !== 'number') {
+            return wallet;
+          }
+
+          return {
+            ...wallet,
+            sortOrder: nextOrder,
+          };
+        })
+        .sort((left, right) => {
+          const leftOrder = Number(left.sortOrder ?? 0);
+          const rightOrder = Number(right.sortOrder ?? 0);
+          if (leftOrder !== rightOrder) {
+            return leftOrder - rightOrder;
+          }
+
+          return Number(left.id ?? 0) - Number(right.id ?? 0);
+        });
+    });
   }
 
   async function deleteWallet(walletId: number): Promise<void> {
     await walletsRepository.deleteWallet(walletId);
-    await loadWallets();
-    await transactionsContext?.loadTransactions();
+
+    setWallets((previousWallets) => {
+      return previousWallets.filter((wallet) => wallet.id !== walletId);
+    });
+
+    transactionsContext?.clearTransactionsForWallet(walletId);
   }
 
   function getWalletById(walletId: number): Wallet | undefined {

@@ -37,18 +37,47 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
     };
 
     const id = await budgetsRepository.insertBudget(ownedBudget);
-    await loadBudgets();
+
+    setBudgets((previousBudgets) => {
+      const nextBudget: Budget = {
+        ...ownedBudget,
+        id,
+        uuid: ownedBudget.uuid ?? id,
+      };
+
+      return [...previousBudgets, nextBudget].sort((left, right) => {
+        return left.category.localeCompare(right.category);
+      });
+    });
+
     return id;
   }
 
   async function updateBudget(budget: Budget): Promise<void> {
     await budgetsRepository.updateBudget(budget);
-    await loadBudgets();
+
+    setBudgets((previousBudgets) => {
+      return previousBudgets
+        .map((previousBudget) => {
+          if (previousBudget.id !== budget.id) {
+            return previousBudget;
+          }
+
+          return {
+            ...previousBudget,
+            ...budget,
+          };
+        })
+        .sort((left, right) => left.category.localeCompare(right.category));
+    });
   }
 
   async function deleteBudget(budgetId: string): Promise<void> {
     await budgetsRepository.deleteBudget(budgetId);
-    await loadBudgets();
+
+    setBudgets((previousBudgets) => {
+      return previousBudgets.filter((budget) => budget.id !== budgetId);
+    });
   }
 
   function getBudgetByCategory(category: string): Budget | undefined {

@@ -40,6 +40,12 @@ interface SyncNowOptions {
 interface SyncRunSummary {
   pendingCount: number;
   pulledCount: number;
+  touchedTables: {
+    wallets: boolean;
+    expenseGroups: boolean;
+    transactions: boolean;
+    budgets: boolean;
+  };
 }
 
 export interface SyncContextValue {
@@ -411,6 +417,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       + pending.expenseGroups.length
       + pending.transactions.length
       + pending.budgets.length;
+    const touchedTables = {
+      wallets: pending.wallets.length > 0,
+      expenseGroups: pending.expenseGroups.length > 0,
+      transactions: pending.transactions.length > 0,
+      budgets: pending.budgets.length > 0,
+    };
 
     await syncTableRows(userId, 'wallets', pending.wallets);
     await syncTableRows(userId, 'expense_groups', pending.expenseGroups);
@@ -454,6 +466,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
         await syncRepository.upsertWalletFromRemote(normalized);
         pulledCount += 1;
+        touchedTables.wallets = true;
       }
     }
 
@@ -467,6 +480,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
         await syncRepository.upsertExpenseGroupFromRemote(normalized);
         pulledCount += 1;
+        touchedTables.expenseGroups = true;
       }
     }
 
@@ -480,6 +494,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
         await syncRepository.upsertTransactionFromRemote(normalized);
         pulledCount += 1;
+        touchedTables.transactions = true;
       }
     }
 
@@ -493,12 +508,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified)) {
         await syncRepository.upsertBudgetFromRemote(normalized);
         pulledCount += 1;
+        touchedTables.budgets = true;
       }
     }
 
     return {
       pendingCount,
       pulledCount,
+      touchedTables,
     };
   }, [fetchAllRemoteRows, syncTableRows]);
 
@@ -531,12 +548,27 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const summary = await runSync(user.id);
 
       if (summary.pendingCount > 0 || summary.pulledCount > 0) {
-        await Promise.all([
-          wallets.loadWallets(),
-          expenseGroups.loadExpenseGroups(),
-          transactions.loadTransactions(),
-          budgets.loadBudgets(),
-        ]);
+        const refreshTasks: Array<Promise<unknown>> = [];
+
+        if (summary.touchedTables.wallets) {
+          refreshTasks.push(wallets.loadWallets());
+        }
+
+        if (summary.touchedTables.expenseGroups) {
+          refreshTasks.push(expenseGroups.loadExpenseGroups());
+        }
+
+        if (summary.touchedTables.transactions) {
+          refreshTasks.push(transactions.loadTransactions());
+        }
+
+        if (summary.touchedTables.budgets) {
+          refreshTasks.push(budgets.loadBudgets());
+        }
+
+        if (refreshTasks.length > 0) {
+          await Promise.all(refreshTasks);
+        }
       }
 
       setStatus('success');

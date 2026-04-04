@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createExpenseGroupsRepository } from '../lib/db/repositories/expenseGroupsRepository';
 import { databaseClient } from '../lib/db/client';
 import type { ExpenseGroup, ExpenseTransaction } from '../types/models';
@@ -30,27 +30,31 @@ export function ExpenseGroupsProvider({ children }: { children: ReactNode }) {
   const [groups, setGroups] = useState<ExpenseGroup[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const groupTransactions = groups.reduce<Record<number, ExpenseTransaction[]>>((accumulator, group) => {
-    if (!group.id) {
+  const groupTransactions = useMemo(() => {
+    return groups.reduce<Record<number, ExpenseTransaction[]>>((accumulator, group) => {
+      if (!group.id) {
+        return accumulator;
+      }
+
+      accumulator[group.id] =
+        transactionsContext?.transactions.filter((transaction) => transaction.groupId === group.id) ?? [];
+
       return accumulator;
-    }
+    }, {});
+  }, [groups, transactionsContext?.transactions]);
 
-    accumulator[group.id] =
-      transactionsContext?.transactions.filter((transaction) => transaction.groupId === group.id) ?? [];
-
-    return accumulator;
-  }, {});
-
-  const groupTotals = Object.entries(groupTransactions).reduce<Record<number, number>>(
-    (accumulator, [groupId, transactionsForGroup]) => {
-      accumulator[Number(groupId)] = transactionsForGroup.reduce(
-        (sum, transaction) => sum + transaction.amount,
-        0,
-      );
-      return accumulator;
-    },
-    {},
-  );
+  const groupTotals = useMemo(() => {
+    return Object.entries(groupTransactions).reduce<Record<number, number>>(
+      (accumulator, [groupId, transactionsForGroup]) => {
+        accumulator[Number(groupId)] = transactionsForGroup.reduce(
+          (sum, transaction) => sum + transaction.amount,
+          0,
+        );
+        return accumulator;
+      },
+      {},
+    );
+  }, [groupTransactions]);
 
   async function loadExpenseGroups(): Promise<ExpenseGroup[]> {
     const loadedGroups = await expenseGroupsRepository.getAllExpenseGroups();
@@ -60,8 +64,7 @@ export function ExpenseGroupsProvider({ children }: { children: ReactNode }) {
   }
 
   async function loadGroupTransactions(groupId: number): Promise<ExpenseTransaction[]> {
-    const latestTransactions = await transactionsContext?.loadTransactions();
-    return latestTransactions?.filter((transaction) => transaction.groupId === groupId) ?? [];
+    return transactionsContext?.transactions.filter((transaction) => transaction.groupId === groupId) ?? [];
   }
 
   async function addExpenseGroup(group: ExpenseGroup): Promise<number> {
@@ -71,19 +74,44 @@ export function ExpenseGroupsProvider({ children }: { children: ReactNode }) {
     };
 
     const id = await expenseGroupsRepository.insertExpenseGroup(ownedGroup);
-    await loadExpenseGroups();
+
+    setGroups((previousGroups) => {
+      const nextGroup: ExpenseGroup = {
+        ...ownedGroup,
+        id,
+      };
+
+      return [nextGroup, ...previousGroups];
+    });
+
     return id;
   }
 
   async function updateExpenseGroup(group: ExpenseGroup): Promise<void> {
     await expenseGroupsRepository.updateExpenseGroup(group);
-    await loadExpenseGroups();
+
+    setGroups((previousGroups) => {
+      return previousGroups.map((previousGroup) => {
+        if (previousGroup.id !== group.id) {
+          return previousGroup;
+        }
+
+        return {
+          ...previousGroup,
+          ...group,
+        };
+      });
+    });
   }
 
   async function deleteExpenseGroup(groupId: number): Promise<void> {
     await expenseGroupsRepository.deleteExpenseGroup(groupId);
-    await loadExpenseGroups();
-    await transactionsContext?.loadTransactions();
+
+    setGroups((previousGroups) => {
+      return previousGroups.filter((group) => group.id !== groupId);
+    });
+
+    transactionsContext?.clearTransactionGroup(groupId);
   }
 
   function getGroupTotal(groupId: number): number {

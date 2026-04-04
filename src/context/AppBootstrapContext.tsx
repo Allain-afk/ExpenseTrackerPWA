@@ -49,13 +49,15 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
 
       try {
         await ensureDatabaseReady();
-        await Promise.all([
-          settingsContext?.loadSettings(),
-          transactionsContext?.loadTransactions(),
-          walletsContext?.loadWallets(),
-          expenseGroupsContext?.loadExpenseGroups(),
-          budgetsContext?.loadBudgets(),
-        ]);
+        const bootstrapTasks: Array<Promise<unknown> | undefined> = [
+          force || !settingsContext?.isLoaded ? settingsContext?.loadSettings() : undefined,
+          force || !transactionsContext?.isLoaded ? transactionsContext?.loadTransactions() : undefined,
+          force || !walletsContext?.isLoaded ? walletsContext?.loadWallets() : undefined,
+          force || !expenseGroupsContext?.isLoaded ? expenseGroupsContext?.loadExpenseGroups() : undefined,
+          force || !budgetsContext?.isLoaded ? budgetsContext?.loadBudgets() : undefined,
+        ];
+
+        await Promise.all(bootstrapTasks.filter((task): task is Promise<unknown> => Boolean(task)));
 
         startTransition(() => {
           setHasBootstrapped(true);
