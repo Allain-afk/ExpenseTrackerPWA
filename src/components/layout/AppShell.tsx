@@ -36,7 +36,7 @@ const tabs: AppTab[] = ['home', 'transactions', 'groups', 'settings'];
 const tabConfig: Array<{ key: AppTab; label: string; icon: ReactNode }> = [
   { key: 'home', label: 'Home', icon: <MdHome size={24} /> },
   { key: 'transactions', label: 'Transactions', icon: <MdListAlt size={24} /> },
-  { key: 'groups', label: 'Groups', icon: <MdFolder size={24} /> },
+  { key: 'groups', label: 'Categories', icon: <MdFolder size={24} /> },
   { key: 'settings', label: 'Settings', icon: <MdSettings size={24} /> },
 ];
 
@@ -133,7 +133,7 @@ export function AppShell() {
       </div>
 
       <Modal
-        description="Create a general transaction or add one directly into a group."
+        description="Create a general transaction or add one directly into a category."
         onClose={() => setIsAddSheetOpen(false)}
         open={isAddSheetOpen}
         title="Add Transaction"
@@ -146,17 +146,17 @@ export function AppShell() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Add to General</span>
-              <span className="inset-subtitle">Transaction without a group</span>
+              <span className="inset-subtitle">Transaction without a category</span>
             </span>
           </Link>
 
           <div className="row-spread" style={{ paddingInline: '0.25rem' }}>
             <div>
-              <p className="eyebrow">Add to Group</p>
-              <p className="helper-text">Pick an existing group or create a new one.</p>
+              <p className="eyebrow">Add to Category</p>
+              <p className="helper-text">Pick an existing category or create a new one.</p>
             </div>
             <Link className="ghost-button" onClick={() => setIsAddSheetOpen(false)} to="/groups/new">
-              Create New Group
+              Create New Category
             </Link>
           </div>
 
@@ -182,8 +182,8 @@ export function AppShell() {
           ) : (
             <div className="app-card empty-state">
               <MdFolderOpen className="muted" size={40} style={{ marginInline: 'auto' }} />
-              <h3 style={{ marginTop: '0.75rem' }}>No groups yet</h3>
-              <p>Create your first group to organize expenses.</p>
+              <h3 style={{ marginTop: '0.75rem' }}>No categories yet</h3>
+              <p>Create your first category to organize expenses.</p>
             </div>
           )}
         </div>

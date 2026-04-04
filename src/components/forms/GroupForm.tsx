@@ -23,7 +23,7 @@ export function GroupForm({
     const trimmedName = name.trim();
 
     if (trimmedName.length < 2) {
-      setError('Group name must be at least 2 characters.');
+      setError('Category name must be at least 2 characters.');
       return;
     }
 
@@ -36,7 +36,7 @@ export function GroupForm({
       <div className="app-card" style={{ padding: '1rem' }}>
         <div className="form-field">
           <label className="field-label" htmlFor="group-name">
-            Group Name
+            Category Name
           </label>
           <input
             className="text-input"
@@ -54,7 +54,7 @@ export function GroupForm({
             className="text-area"
             id="group-description"
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Brief description of this group"
+            placeholder="Brief description of this category"
             value={description ?? ''}
           />
         </div>

@@ -25,14 +25,14 @@ export function GroupsScreen({ currencySymbol }: GroupsScreenProps) {
       <div className="page-content">
         <header className={styles.headerBar}>
           <div>
-            <p className="eyebrow">Organization</p>
-            <h1>Groups</h1>
+            <p className="eyebrow">Spending</p>
+            <h1>Categories</h1>
           </div>
           <div className="inline-actions" style={{ gap: '0.65rem' }}>
             <SyncStatusIcon />
             <Link className="primary-button" to="/groups/new">
               <MdAdd size={18} style={{ marginRight: '0.35rem', verticalAlign: 'middle' }} />
-              Add Group
+              Add Category
             </Link>
           </div>
         </header>
@@ -77,8 +77,8 @@ export function GroupsScreen({ currencySymbol }: GroupsScreenProps) {
           </div>
         ) : (
           <div className="app-card empty-state">
-            <h3>No expense groups yet</h3>
-            <p>Create your first expense group to organize your expenses.</p>
+            <h3>No spending categories yet</h3>
+            <p>Create your first spending category to organize your expenses.</p>
           </div>
         )}
       </div>
@@ -87,7 +87,7 @@ export function GroupsScreen({ currencySymbol }: GroupsScreenProps) {
         confirmLabel="Delete"
         description={
           deleteCandidate
-            ? `Are you sure you want to delete "${deleteCandidate.name}"? Transactions will remain, but they will be removed from this group.`
+            ? `Are you sure you want to delete "${deleteCandidate.name}"? Transactions will remain, but they will be removed from this category.`
             : ''
         }
         onClose={() => setDeleteCandidateId(null)}
@@ -95,16 +95,16 @@ export function GroupsScreen({ currencySymbol }: GroupsScreenProps) {
           try {
             if (deleteCandidateId) {
               await deleteExpenseGroup(deleteCandidateId);
-              showSuccessToast('Group deleted', deleteCandidate?.name ?? 'The group was removed.');
+              showSuccessToast('Category deleted', deleteCandidate?.name ?? 'The category was removed.');
             }
             setDeleteCandidateId(null);
           } catch (error) {
-            const message = error instanceof Error ? error.message : 'We could not delete the group.';
+            const message = error instanceof Error ? error.message : 'We could not delete the category.';
             showErrorToast('Delete failed', message);
           }
         }}
         open={deleteCandidateId !== null}
-        title="Delete Group"
+        title="Delete Category"
         tone="danger"
       />
     </main>

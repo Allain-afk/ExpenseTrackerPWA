@@ -25,10 +25,10 @@ export function GroupDetailScreen() {
     return (
       <main className="app-page">
         <div className="app-card empty-state">
-          <h3>Group not found</h3>
-          <p>The selected group could not be found.</p>
+          <h3>Category not found</h3>
+          <p>The selected category could not be found.</p>
           <Link className="ghost-button" to="/app/groups">
-            Back to groups
+            Back to categories
           </Link>
         </div>
       </main>
@@ -61,7 +61,7 @@ export function GroupDetailScreen() {
         <section className={`app-card ${styles.heroCard}`}>
           <div className="row-spread">
             <div>
-              <p className="eyebrow">Group Total</p>
+              <p className="eyebrow">Category Total</p>
               <h2 className="numeric-strong" style={{ margin: '0.35rem 0 0', fontSize: '2.2rem' }}>
                 {formatMoney(groups.getGroupTotal(groupId), settings.currencySymbol)}
               </h2>
@@ -90,7 +90,7 @@ export function GroupDetailScreen() {
         <section className="section-shell">
           <div className="section-header">
             <h2>Transactions ({groupTransactions.length})</h2>
-            <p>All income and expense records linked to this group.</p>
+            <p>All income and expense records linked to this category.</p>
           </div>
           {groupTransactions.length ? (
             <div className={styles.transactionList}>
@@ -116,7 +116,7 @@ export function GroupDetailScreen() {
           ) : (
             <div className="app-card empty-state">
               <h3>No transactions yet</h3>
-              <p>Add your first transaction to this group.</p>
+              <p>Add your first transaction to this category.</p>
             </div>
           )}
         </section>

@@ -282,7 +282,7 @@ export function TransactionFormScreen() {
           <section className={`app-card ${styles.sectionCard}`}>
             <div className={styles.sectionHeader}>
               <p className="eyebrow">Assignment</p>
-              <h2>Wallet &amp; Group</h2>
+              <h2>Wallet &amp; Category</h2>
               <p className={styles.sectionDescription}>
                 Choose where this transaction belongs and organize it if needed.
               </p>
@@ -345,7 +345,7 @@ export function TransactionFormScreen() {
               {groups.groups.length ? (
                 <div className="form-field">
                   <label className="field-label" htmlFor="group-select">
-                    Expense Group (Optional)
+                    Spending Category (Optional)
                   </label>
                   <select
                     className="select-input"
@@ -353,7 +353,7 @@ export function TransactionFormScreen() {
                     onChange={(event) => setSelectedGroupId(parseOptionalNumber(event.target.value))}
                     value={selectedGroupId ?? ''}
                   >
-                    <option value="">No Group</option>
+                    <option value="">No Category</option>
                     {groups.groups.map((group) => (
                       <option key={group.id} value={group.id}>
                         {group.name}
@@ -363,7 +363,7 @@ export function TransactionFormScreen() {
                   <p className="helper-text">
                     {selectedGroup
                       ? `${selectedGroup.name} is currently selected.`
-                      : 'Leave this empty if the transaction should stay outside a group.'}
+                      : 'Leave this empty if the transaction should stay outside a category.'}
                   </p>
                 </div>
               ) : null}
@@ -377,9 +377,9 @@ export function TransactionFormScreen() {
                   <MdFolder size={22} />
                 </span>
                 <span className="inset-item-content">
-                  <span className="inset-title">Create New Group</span>
+                  <span className="inset-title">Create New Category</span>
                   <span className="inset-subtitle">
-                    Create a group without leaving this form.
+                    Create a category without leaving this form.
                   </span>
                 </span>
               </button>
@@ -431,7 +431,7 @@ export function TransactionFormScreen() {
       <Modal
         onClose={() => setIsGroupModalOpen(false)}
         open={isGroupModalOpen}
-        title="Create New Group"
+        title="Create New Category"
       >
         <GroupForm
           loading={groupModalBusy}
@@ -447,15 +447,15 @@ export function TransactionFormScreen() {
               });
               setSelectedGroupId(id);
               setIsGroupModalOpen(false);
-              showSuccessToast('Group created', `${name} is ready to organize expenses.`);
+              showSuccessToast('Category created', `${name} is ready to organize expenses.`);
             } catch (error) {
-              const message = error instanceof Error ? error.message : 'We could not create the group.';
-              showErrorToast('Group creation failed', message);
+              const message = error instanceof Error ? error.message : 'We could not create the category.';
+              showErrorToast('Category creation failed', message);
             } finally {
               setGroupModalBusy(false);
             }
           }}
-          submitLabel="Create Group"
+          submitLabel="Create Category"
         />
       </Modal>
 

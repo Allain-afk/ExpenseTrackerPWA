@@ -20,8 +20,8 @@ export function GroupFormScreen() {
     return (
       <main className="app-page">
         <div className="app-card empty-state">
-          <h3>Group not found</h3>
-          <p>The selected group could not be found.</p>
+          <h3>Category not found</h3>
+          <p>The selected category could not be found.</p>
         </div>
       </main>
     );
@@ -32,7 +32,7 @@ export function GroupFormScreen() {
       <div className="page-content">
         <PageHeader
           backTo="/app/groups"
-          title={existingGroup ? 'Edit Group' : 'Add Group'}
+          title={existingGroup ? 'Edit Category' : 'Add Category'}
         />
         <GroupForm
           initialGroup={existingGroup}
@@ -56,7 +56,7 @@ export function GroupFormScreen() {
               }
 
               showSuccessToast(
-                existingGroup ? 'Group updated' : 'Group created',
+                existingGroup ? 'Category updated' : 'Category created',
                 `${name} is ready to use.`,
               );
 
@@ -66,11 +66,11 @@ export function GroupFormScreen() {
                 navigate('/app/groups', { replace: true });
               }
             } catch (error) {
-              const message = error instanceof Error ? error.message : 'We could not save the group.';
-              showErrorToast('Group save failed', message);
+              const message = error instanceof Error ? error.message : 'We could not save the category.';
+              showErrorToast('Category save failed', message);
             }
           }}
-          submitLabel={existingGroup ? 'Update Group' : 'Create Group'}
+          submitLabel={existingGroup ? 'Update Category' : 'Create Category'}
         />
       </div>
     </main>
