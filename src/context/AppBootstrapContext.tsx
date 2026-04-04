@@ -13,6 +13,26 @@ import { WalletsContext } from './WalletsContext';
 import { ExpenseGroupsContext } from './ExpenseGroupsContext';
 import { BudgetsContext } from './BudgetsContext';
 
+const BOOTSTRAP_TIMEOUT_MS = 15000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeoutHandle: number | null = null;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutHandle = window.setTimeout(() => {
+      reject(new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)} seconds.`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutHandle !== null) {
+      window.clearTimeout(timeoutHandle);
+    }
+  }
+}
+
 export interface AppBootstrapContextValue {
   isBootstrapping: boolean;
   hasBootstrapped: boolean;
@@ -57,7 +77,11 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
           force || !budgetsContext?.isLoaded ? budgetsContext?.loadBudgets() : undefined,
         ];
 
-        await Promise.all(bootstrapTasks.filter((task): task is Promise<unknown> => Boolean(task)));
+        await withTimeout(
+          Promise.all(bootstrapTasks.filter((task): task is Promise<unknown> => Boolean(task))),
+          BOOTSTRAP_TIMEOUT_MS,
+          'App bootstrap',
+        );
 
         startTransition(() => {
           setHasBootstrapped(true);
