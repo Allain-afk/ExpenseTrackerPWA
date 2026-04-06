@@ -65,7 +65,20 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
-    version: '1.4.0',
+    version: '1.3.7',
+    title: 'Balance Visibility Control',
+    description: [
+      'Toggle visibility to hide sensitive balances behind asterisks for better privacy in public.',
+      'Visibility state is per-card and resets when the app is reloaded.',
+    ],
+    accent: '#2563eb',
+    badgeBackground: 'rgba(37, 99, 235, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
+    version: '1.3.6',
     title: 'Per-Wallet Low Balance Limits',
     description: [
       'Added individual low-balance thresholds for each wallet card.',
@@ -78,7 +91,7 @@ const versionHistory: Array<{
     badgeBackground: 'rgba(15, 118, 110, 0.12)',
     surface:
       'linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
-    latest: true,
+    latest: undefined,
   },
   {
     version: '1.3.5',
@@ -753,7 +766,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.4.0</span>
+              <span className="inset-subtitle">1.3.7</span>
             </span>
           </button>
           <div className="inset-item">
@@ -1007,8 +1020,8 @@ export function SettingsScreen() {
               value={authPassword}
             />
             {authMode === 'signin' && (
-              <button 
-                className="text-button" 
+              <button
+                className="text-button"
                 onClick={() => void handleForgotPassword()}
                 style={{ alignSelf: 'flex-start', marginTop: '0.5rem', fontSize: '0.8em', padding: 0 }}
                 type="button"

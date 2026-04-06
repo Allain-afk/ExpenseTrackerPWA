@@ -7,6 +7,8 @@ import {
   MdCreditCard,
   MdRefresh,
   MdSavings,
+  MdVisibility,
+  MdVisibilityOff,
 } from 'react-icons/md';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
@@ -51,6 +53,15 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
   const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
   const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
+  const [hiddenBalances, setHiddenBalances] = useState<Set<string>>(new Set());
+
+  function toggleBalance(key: string) {
+    setHiddenBalances(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
   const visibleWallets = useMemo(() => {
     return wallets.wallets.filter((wallet) => !wallet.isHidden);
   }, [wallets.wallets]);
@@ -132,8 +143,19 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
                     <MdArrowOutward size={18} />
                   </span>
                 </div>
-                <p className={styles.walletBalanceLabel}>Available Balance</p>
-                <h2 className={styles.walletBalance}>{formatMoney(mainWalletBalance, currencySymbol)}</h2>
+                <div className={styles.walletBalanceRow}>
+                  <p className={styles.walletBalanceLabel}>Available Balance</p>
+                  <button
+                    className={styles.eyeToggle}
+                    onClick={(e) => { e.stopPropagation(); toggleBalance('main'); }}
+                    type="button"
+                  >
+                    {hiddenBalances.has('main') ? <MdVisibilityOff size={16}/> : <MdVisibility size={16}/>}
+                  </button>
+                </div>
+                <h2 className={styles.walletBalance}>
+                  {hiddenBalances.has('main') ? `${currencySymbol} •••••••` : formatMoney(mainWalletBalance, currencySymbol)}
+                </h2>
                 <div className={styles.walletFooter}>
                   <div>
                     <p className={styles.walletName}>{settings.mainWalletName}</p>
@@ -164,9 +186,18 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
                     <MdArrowOutward size={18} />
                   </span>
                 </div>
-                <p className={styles.walletBalanceLabel}>Available Balance</p>
+                <div className={styles.walletBalanceRow}>
+                  <p className={styles.walletBalanceLabel}>Available Balance</p>
+                  <button
+                    className={styles.eyeToggle}
+                    onClick={(e) => { e.stopPropagation(); toggleBalance(`wallet-${wallet.id}`); }}
+                    type="button"
+                  >
+                    {hiddenBalances.has(`wallet-${wallet.id}`) ? <MdVisibilityOff size={16}/> : <MdVisibility size={16}/>}
+                  </button>
+                </div>
                 <h2 className={styles.walletBalance}>
-                  {formatMoney(walletBalancesById.get(wallet.id ?? -1) ?? 0, currencySymbol)}
+                  {hiddenBalances.has(`wallet-${wallet.id}`) ? `${currencySymbol} •••••••` : formatMoney(walletBalancesById.get(wallet.id ?? -1) ?? 0, currencySymbol)}
                 </h2>
                 <div className={styles.walletFooter}>
                   <div>
