@@ -20,6 +20,7 @@ export interface SettingsContextValue {
   mainWalletColor: number;
   mainWalletHidden: boolean;
   themeId: ThemeId;
+  hiddenBalanceKeys: string[];
   isSetupComplete: boolean;
   isLoaded: boolean;
   loadSettings: () => Promise<Settings>;
@@ -42,6 +43,7 @@ export interface SettingsContextValue {
     lowBalanceThreshold?: number;
     notificationMessage?: string;
   }) => Promise<void>;
+  updateHiddenBalanceKeys: (keys: string[]) => Promise<void>;
   markSetupComplete: () => Promise<void>;
   resetAllAppData: () => Promise<void>;
 }
@@ -130,6 +132,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  async function updateHiddenBalanceKeys(keys: string[]): Promise<void> {
+    await persistSettings({
+      ...settings,
+      hiddenBalanceKeys: keys,
+    });
+  }
+
   async function markSetupComplete(): Promise<void> {
     settingsStorage.saveSetupComplete(true);
     setIsSetupComplete(true);
@@ -156,6 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         mainWalletColor: settings.mainWalletColor,
         mainWalletHidden: settings.mainWalletHidden,
         themeId: settings.themeId,
+        hiddenBalanceKeys: settings.hiddenBalanceKeys,
         isSetupComplete,
         isLoaded,
         loadSettings,
@@ -165,6 +175,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         updateMainWallet,
         updateUserSettings,
         updateNotificationSettings,
+        updateHiddenBalanceKeys,
         markSetupComplete,
         resetAllAppData,
       }}

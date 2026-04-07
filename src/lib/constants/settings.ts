@@ -13,6 +13,7 @@ export const defaultSettings: Settings = {
   mainWalletColor: 0xff1f2937,
   mainWalletHidden: false,
   themeId: defaultThemeId,
+  hiddenBalanceKeys: [],
 };
 
 export const availableCurrencies: CurrencyOption[] = [

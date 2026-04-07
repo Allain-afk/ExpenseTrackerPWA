@@ -83,6 +83,7 @@ export interface Settings {
   mainWalletColor: number;
   mainWalletHidden: boolean;
   themeId: ThemeId;
+  hiddenBalanceKeys: string[];
 }
 
 export interface CurrencyOption {

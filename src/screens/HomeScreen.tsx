@@ -53,14 +53,12 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
   const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
   const [isMainWalletOpen, setIsMainWalletOpen] = useState(false);
-  const [hiddenBalances, setHiddenBalances] = useState<Set<string>>(new Set());
+  const hiddenBalances = useMemo(() => new Set<string>(settings.hiddenBalanceKeys), [settings.hiddenBalanceKeys]);
 
-  function toggleBalance(key: string) {
-    setHiddenBalances(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
+  async function toggleBalance(key: string) {
+    const next = new Set<string>(hiddenBalances);
+    next.has(key) ? next.delete(key) : next.add(key);
+    await settings.updateHiddenBalanceKeys(Array.from(next));
   }
   const visibleWallets = useMemo(() => {
     return wallets.wallets.filter((wallet) => !wallet.isHidden);
