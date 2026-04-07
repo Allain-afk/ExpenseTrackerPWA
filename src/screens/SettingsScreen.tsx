@@ -69,7 +69,7 @@ const versionHistory: Array<{
     title: 'Balance Visibility Control',
     description: [
       'Toggle visibility to hide sensitive balances behind asterisks for better privacy in public.',
-      'Visibility state is per-card and resets when the app is reloaded.',
+      'Visibility state is per-card and is now persistent across all cards even when the app is reloaded.',
     ],
     accent: '#2563eb',
     badgeBackground: 'rgba(37, 99, 235, 0.12)',
