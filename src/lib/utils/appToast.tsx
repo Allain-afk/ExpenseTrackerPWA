@@ -68,7 +68,7 @@ function renderAppToastCard({
 
 export function showAppToast({
   description,
-  duration = 4200,
+  duration = 1500,
   icon,
   id,
   title,

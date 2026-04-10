@@ -550,22 +550,18 @@ img {
 
 .app-toast {
   --toast-accent: var(--color-primary);
-  width: min(26rem, calc(100vw - 1.5rem));
+  width: min(22rem, calc(100vw - 1.5rem));
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  align-items: start;
-  gap: 0.85rem;
-  padding: 0.9rem 0.95rem 0.9rem 1rem;
-  border-radius: 1.25rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 1.125rem;
   border: 1px solid var(--color-border);
-  background: linear-gradient(
-    180deg,
-    var(--color-surface-translucent) 0%,
-    var(--color-surface-elevated) 100%
-  );
-  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.16);
-  backdrop-filter: blur(18px);
+  background: var(--color-surface-elevated);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(12px);
   overflow: hidden;
   transition: opacity 180ms ease, transform 180ms ease;
 }
@@ -574,8 +570,9 @@ img {
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--toast-accent) 0%, rgba(255, 255, 255, 0.85) 160%);
+  width: 3px;
+  background: var(--toast-accent);
+  opacity: 0.8;
 }
 
 .app-toast--success {
@@ -605,14 +602,14 @@ img {
 }
 
 .app-toast-icon {
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 1.9rem;
+  height: 1.9rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.95rem;
+  border-radius: 0.75rem;
   color: white;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .app-toast-icon--success {
@@ -648,15 +645,15 @@ img {
 }
 
 .app-toast-title {
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .app-toast-description {
   color: var(--color-text-secondary);
-  font-size: 0.84rem;
-  line-height: 1.45;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .app-toast-dismiss {
@@ -666,7 +663,7 @@ img {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.6);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
   transition: background 150ms ease, color 150ms ease;
