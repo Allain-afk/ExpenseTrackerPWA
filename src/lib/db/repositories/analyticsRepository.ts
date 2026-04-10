@@ -72,7 +72,7 @@ function toSqlDateTime(value: Date): string {
 
 function toUserScope(userId?: string | null): UserScopedQuery {
   if (!userId) {
-    return { clause: '1 = 1', params: [] };
+    return { clause: 'user_id IS NULL', params: [] };
   }
 
   return { clause: 'user_id = ?', params: [userId] };

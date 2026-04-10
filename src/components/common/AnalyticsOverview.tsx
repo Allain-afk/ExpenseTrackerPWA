@@ -162,22 +162,24 @@ export function AnalyticsOverview({
             </span>
           </div>
 
-          <div className={styles.progressWrap}>
-            <div className={styles.progressMeta}>
-              <span>Budget usage</span>
-              <span>{Math.round(monthlyPercent)}%</span>
+          {summary && summary.monthlyBudgetLimit > 0 ? (
+            <div className={styles.progressWrap}>
+              <div className={styles.progressMeta}>
+                <span>Budget usage</span>
+                <span>{Math.round(monthlyPercent)}%</span>
+              </div>
+              <div className={styles.progressTrack}>
+                <div
+                  className={`${styles.progressFill} ${isOverBudget ? styles.progressFillOver : ''}`}
+                  style={{ width: `${Math.min(monthlyPercent, 100)}%` }}
+                />
+              </div>
+              <div className={styles.progressMeta}>
+                <span>{formatMoney(summary?.monthlyTotal ?? 0, currencySymbol)}</span>
+                <span>{formatMoney(summary?.monthlyBudgetLimit ?? 0, currencySymbol)}</span>
+              </div>
             </div>
-            <div className={styles.progressTrack}>
-              <div
-                className={`${styles.progressFill} ${isOverBudget ? styles.progressFillOver : ''}`}
-                style={{ width: `${Math.min(monthlyPercent, 100)}%` }}
-              />
-            </div>
-            <div className={styles.progressMeta}>
-              <span>{formatMoney(summary?.monthlyTotal ?? 0, currencySymbol)}</span>
-              <span>{formatMoney(summary?.monthlyBudgetLimit ?? 0, currencySymbol)}</span>
-            </div>
-          </div>
+          ) : null}
 
           <div className={styles.chartWrap}>
             <ResponsiveContainer height="100%" width="100%">
