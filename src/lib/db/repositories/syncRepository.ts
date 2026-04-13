@@ -391,7 +391,7 @@ export function createSyncRepository(client: DatabaseClient) {
           user_id,
           is_synced,
           last_modified
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
         ON CONFLICT(uuid)
         DO UPDATE SET
           amount = excluded.amount,
