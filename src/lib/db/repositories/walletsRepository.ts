@@ -131,6 +131,30 @@ export function createWalletsRepository(client: DatabaseClient) {
 
     async deleteWallet(id: number): Promise<void> {
       await ensureDatabaseReady();
+      const timestamp = toIsoTimestamp();
+
+      const [walletRow] = await client.sql<{ uuid: string | null }>('SELECT uuid FROM wallets WHERE id = ?', id);
+      if (walletRow?.uuid) {
+        await client.sql(
+          'INSERT OR IGNORE INTO deleted_entities (uuid, table_name, deleted_at) VALUES (?, ?, ?)',
+          walletRow.uuid,
+          'wallets',
+          timestamp,
+        );
+      }
+
+      const txRows = await client.sql<{ uuid: string | null }>('SELECT uuid FROM transactions WHERE walletId = ?', id);
+      for (const row of txRows) {
+        if (row.uuid) {
+          await client.sql(
+            'INSERT OR IGNORE INTO deleted_entities (uuid, table_name, deleted_at) VALUES (?, ?, ?)',
+            row.uuid,
+            'transactions',
+            timestamp,
+          );
+        }
+      }
+
       await client.sql('DELETE FROM transactions WHERE walletId = ?', id);
       await client.sql('DELETE FROM wallets WHERE id = ?', id);
     },

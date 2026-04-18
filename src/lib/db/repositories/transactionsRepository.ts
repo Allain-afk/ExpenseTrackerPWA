@@ -169,6 +169,15 @@ export function createTransactionsRepository(client: DatabaseClient) {
 
     async deleteTransaction(id: number): Promise<void> {
       await ensureDatabaseReady();
+      const [row] = await client.sql<{ uuid: string | null }>('SELECT uuid FROM transactions WHERE id = ?', id);
+      if (row?.uuid) {
+        await client.sql(
+          'INSERT OR IGNORE INTO deleted_entities (uuid, table_name, deleted_at) VALUES (?, ?, ?)',
+          row.uuid,
+          'transactions',
+          toIsoTimestamp(),
+        );
+      }
       await client.sql('DELETE FROM transactions WHERE id = ?', id);
     },
 

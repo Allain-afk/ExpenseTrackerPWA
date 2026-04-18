@@ -128,6 +128,15 @@ export function createBudgetsRepository(client: DatabaseClient) {
 
     async deleteBudget(id: string): Promise<void> {
       await ensureDatabaseReady();
+      const [row] = await client.sql<{ uuid: string | null }>('SELECT uuid FROM budgets WHERE id = ?', id);
+      if (row?.uuid) {
+        await client.sql(
+          'INSERT OR IGNORE INTO deleted_entities (uuid, table_name, deleted_at) VALUES (?, ?, ?)',
+          row.uuid,
+          'budgets',
+          toIsoTimestamp(),
+        );
+      }
       await client.sql('DELETE FROM budgets WHERE id = ?', id);
     },
   };

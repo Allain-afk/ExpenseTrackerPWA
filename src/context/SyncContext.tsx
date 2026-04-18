@@ -412,6 +412,24 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const runSync = useCallback(async (userId: string): Promise<SyncRunSummary> => {
+    if (supabase) {
+      const deletedEntities = await syncRepository.getDeletedEntities();
+      for (const entity of deletedEntities) {
+        if (!entity.uuid || !entity.table_name) {
+          continue;
+        }
+
+        const { error } = await supabase.from(entity.table_name).delete().eq('uuid', entity.uuid);
+        // If there's no error, it means it's successfully deleted remotely or already missing.
+        if (!error) {
+          await syncRepository.removeDeletedEntity(entity.uuid);
+        }
+      }
+    }
+
+    const remainingDeletions = await syncRepository.getDeletedEntities();
+    const deletedUuids = new Set(remainingDeletions.map((entity) => entity.uuid));
+
     const pending: SyncPendingData = await syncRepository.getPendingRowsForUser(userId);
     const pendingCount = pending.wallets.length
       + pending.expenseGroups.length
@@ -458,7 +476,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     for (const row of remoteWalletRows) {
       const normalized = normalizeWalletRemoteRow(row);
-      if (!normalized) {
+      if (!normalized || deletedUuids.has(normalized.uuid)) {
         continue;
       }
 
@@ -472,7 +490,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     for (const row of remoteExpenseGroupRows) {
       const normalized = normalizeGroupRemoteRow(row);
-      if (!normalized) {
+      if (!normalized || deletedUuids.has(normalized.uuid)) {
         continue;
       }
 
@@ -486,7 +504,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     for (const row of remoteTransactionRows) {
       const normalized = normalizeTransactionRemoteRow(row);
-      if (!normalized) {
+      if (!normalized || deletedUuids.has(normalized.uuid)) {
         continue;
       }
 
@@ -500,7 +518,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     for (const row of remoteBudgetRows) {
       const normalized = normalizeBudgetRemoteRow(row);
-      if (!normalized) {
+      if (!normalized || deletedUuids.has(normalized.uuid)) {
         continue;
       }
 

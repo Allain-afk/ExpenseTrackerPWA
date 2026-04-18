@@ -1,6 +1,6 @@
 import type { DatabaseClient } from './types';
 
-export const databaseVersion = 10;
+export const databaseVersion = 11;
 
 async function getUserVersion(client: DatabaseClient): Promise<number> {
   const [result] = await client.sql<{ user_version: number }>('PRAGMA user_version');
@@ -274,6 +274,16 @@ async function migrateToV10(client: DatabaseClient): Promise<void> {
   }
 }
 
+async function migrateToV11(client: DatabaseClient): Promise<void> {
+  await client.sql(`
+    CREATE TABLE IF NOT EXISTS deleted_entities (
+      uuid TEXT PRIMARY KEY,
+      table_name TEXT NOT NULL,
+      deleted_at TEXT NOT NULL
+    )
+  `);
+}
+
 const migrations = [
   migrateToV1,
   migrateToV2,
@@ -285,6 +295,7 @@ const migrations = [
   migrateToV8,
   migrateToV9,
   migrateToV10,
+  migrateToV11,
 ];
 
 export async function applyMigrations(client: DatabaseClient): Promise<void> {

@@ -452,5 +452,25 @@ export function createSyncRepository(client: DatabaseClient) {
         row.last_modified,
       );
     },
+
+    async getDeletedEntities(): Promise<Array<{ uuid: string; table_name: string }>> {
+      await ensureDatabaseReady();
+      return client.sql<{ uuid: string; table_name: string }>('SELECT uuid, table_name FROM deleted_entities');
+    },
+
+    async removeDeletedEntity(uuid: string): Promise<void> {
+      await ensureDatabaseReady();
+      await client.sql('DELETE FROM deleted_entities WHERE uuid = ?', uuid);
+    },
+
+    async markEntityAsDeleted(uuid: string, tableName: string): Promise<void> {
+      await ensureDatabaseReady();
+      await client.sql(
+        'INSERT OR IGNORE INTO deleted_entities (uuid, table_name, deleted_at) VALUES (?, ?, ?)',
+        uuid,
+        tableName,
+        isoNow(),
+      );
+    },
   };
 }

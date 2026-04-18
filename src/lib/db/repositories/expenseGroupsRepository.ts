@@ -110,6 +110,15 @@ export function createExpenseGroupsRepository(client: DatabaseClient) {
 
     async deleteExpenseGroup(id: number): Promise<void> {
       await ensureDatabaseReady();
+      const [groupRow] = await client.sql<{ uuid: string | null }>('SELECT uuid FROM expense_groups WHERE id = ?', id);
+      if (groupRow?.uuid) {
+        await client.sql(
+          'INSERT OR IGNORE INTO deleted_entities (uuid, table_name, deleted_at) VALUES (?, ?, ?)',
+          groupRow.uuid,
+          'expense_groups',
+          toIsoTimestamp(),
+        );
+      }
       await client.sql('UPDATE transactions SET groupId = NULL WHERE groupId = ?', id);
       await client.sql('DELETE FROM expense_groups WHERE id = ?', id);
     },
