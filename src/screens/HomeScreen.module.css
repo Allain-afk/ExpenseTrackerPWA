@@ -23,6 +23,18 @@
   color: white;
   position: relative;
   overflow: hidden;
+  transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) var(--ease-out);
+}
+
+.walletCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elev-3);
+}
+
+@media (min-width: 720px) {
+  .walletCard {
+    min-width: 0;
+  }
 }
 
 .walletCard::before,

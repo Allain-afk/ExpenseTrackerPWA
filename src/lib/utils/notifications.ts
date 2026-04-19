@@ -5,7 +5,19 @@ import { dismissAppToast, showWarningToast } from './appToast';
 const shownAlerts = new Set<string>();
 
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-  return 'granted';
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+    return 'denied';
+  }
+
+  if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+    return Notification.permission;
+  }
+
+  try {
+    return await Notification.requestPermission();
+  } catch {
+    return 'denied';
+  }
 }
 
 export function resetLowBalanceNotificationSession(): void {

@@ -98,7 +98,7 @@ export function AppShell() {
       </div>
 
       <div className={styles.dockWrap}>
-        <nav className={styles.dock}>
+        <nav aria-label="Primary" className={styles.dock}>
           {tabConfig.slice(0, 2).map((tab) => (
             <button
               className={`${styles.dockButton} ${activeTab === tab.key ? styles.dockButtonActive : ''}`}
@@ -131,6 +131,37 @@ export function AppShell() {
           ))}
         </nav>
       </div>
+
+      <aside aria-label="Primary" className={styles.rail}>
+        <div className={styles.railBrand}>
+          <span className={styles.railBrandMark} aria-hidden="true">$</span>
+          <span className={styles.railBrandName}>Expense Tracker</span>
+        </div>
+        <nav className={styles.railNav}>
+          {tabConfig.map((tab) => (
+            <button
+              className={`${styles.railButton} ${activeTab === tab.key ? styles.railButtonActive : ''}`}
+              key={tab.key}
+              onClick={() => goToTab(tab.key)}
+              type="button"
+            >
+              <span className={styles.railIcon}>{tab.icon}</span>
+              <span className={styles.railLabel}>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+        <button
+          aria-label="Add transaction"
+          className={styles.railAdd}
+          onClick={() => setIsAddSheetOpen(true)}
+          type="button"
+        >
+          <span className={styles.railAddIcon}>
+            <MdAdd size={22} />
+          </span>
+          <span className={styles.railLabel}>Add</span>
+        </button>
+      </aside>
 
       <Modal
         description="Create a general transaction or add one directly into a category."

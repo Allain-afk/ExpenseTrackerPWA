@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { PageHeader } from '../components/common/PageHeader';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { useAuth } from '../hooks/useAuth';
 import { useBudgets } from '../hooks/useBudgets';
 import { createAnalyticsRepository } from '../lib/db/repositories/analyticsRepository';
@@ -70,6 +71,7 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
   const [limitAmountInput, setLimitAmountInput] = useState('');
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [isSavingBudget, setIsSavingBudget] = useState(false);
+  const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null);
 
   const budgetRows = useMemo(() => {
     return [...budgets.budgets].sort((a, b) => a.category.localeCompare(b.category));
@@ -199,23 +201,28 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
     setLimitAmountInput(String(budget.limitAmount));
   }
 
-  async function deleteBudget(budget: Budget) {
+  function requestBudgetDelete(budget: Budget) {
     if (!budget.id) {
       return;
     }
+    setBudgetToDelete(budget);
+  }
 
-    const isConfirmed = window.confirm(`Delete ${budget.category} budget?`);
-    if (!isConfirmed) {
+  async function confirmBudgetDelete() {
+    if (!budgetToDelete?.id) {
+      setBudgetToDelete(null);
       return;
     }
 
     try {
-      await budgets.deleteBudget(budget.id);
-      showSuccessToast('Budget deleted', `${budget.category} budget was removed.`);
+      await budgets.deleteBudget(budgetToDelete.id);
+      showSuccessToast('Budget deleted', `${budgetToDelete.category} budget was removed.`);
       await loadAnalyticsData();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to delete budget right now.';
       showErrorToast('Delete failed', message);
+    } finally {
+      setBudgetToDelete(null);
     }
   }
 
@@ -447,7 +454,7 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
                     </button>
                     <button
                       className={`danger-button ${styles.smallButton}`}
-                      onClick={() => void deleteBudget(budget)}
+                      onClick={() => requestBudgetDelete(budget)}
                       type="button"
                     >
                       Delete
@@ -464,6 +471,20 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        confirmLabel="Delete"
+        description={
+          budgetToDelete
+            ? `Delete the ${budgetToDelete.category} budget? This will remove the spending cap for that category.`
+            : ''
+        }
+        onClose={() => setBudgetToDelete(null)}
+        onConfirm={confirmBudgetDelete}
+        open={budgetToDelete !== null}
+        title="Delete budget"
+        tone="danger"
+      />
     </main>
   );
 }

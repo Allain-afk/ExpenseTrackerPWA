@@ -28,32 +28,8 @@ import { SectionList } from '../components/common/SectionList';
 import { Modal } from '../components/common/Modal';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { SyncStatusIcon } from '../components/common/SyncStatusIcon';
+import { getSupabaseDisplayName } from '../lib/utils/supabaseUser';
 import styles from './SettingsScreen.module.css';
-
-function getSupabaseDisplayName(input: unknown): string {
-  if (!input || typeof input !== 'object') {
-    return '';
-  }
-
-  const metadata = input as Record<string, unknown>;
-  const displayName = metadata.display_name;
-  const fullName = metadata.full_name;
-  const name = metadata.name;
-
-  if (typeof displayName === 'string' && displayName.trim()) {
-    return displayName.trim();
-  }
-
-  if (typeof fullName === 'string' && fullName.trim()) {
-    return fullName.trim();
-  }
-
-  if (typeof name === 'string' && name.trim()) {
-    return name.trim();
-  }
-
-  return '';
-}
 
 const versionHistory: Array<{
   version: string;
@@ -65,6 +41,24 @@ const versionHistory: Array<{
   latest?: boolean;
 }> = [
   {
+    version: '1.3.8',
+    title: 'Wide-Device Layout & Navigation Rail',
+    description: [
+      'Added a collapsible side navigation rail on tablets and desktops while keeping the floating dock on phones.',
+      'Capped content in a centered column on larger screens so reading width stays comfortable.',
+      'Unlocked portrait-only orientation so tablets, foldables, and laptops can use landscape naturally.',
+      'Analytics and dashboard charts now scale by aspect ratio instead of fixed heights.',
+      'Repositioned the Add Transaction save button to sit at the same bottom level as the navigation dock.',
+      'Added safe-area aware spacing for the dock, FAB, and form submit bar on notched devices.',
+      'Introduced subtle modal enter animations and respect prefers-reduced-motion for accessibility.',
+    ],
+    accent: '#0f766e',
+    badgeBackground: 'rgba(15, 118, 110, 0.12)',
+    surface:
+      'linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
+    latest: true,
+  },
+  {
     version: '1.3.7',
     title: 'Balance Visibility Control',
     description: [
@@ -75,7 +69,6 @@ const versionHistory: Array<{
     badgeBackground: 'rgba(37, 99, 235, 0.12)',
     surface:
       'linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%)',
-    latest: true,
   },
   {
     version: '1.3.6',
@@ -766,7 +759,7 @@ export function SettingsScreen() {
             </span>
             <span className="inset-item-content">
               <span className="inset-title">Version</span>
-              <span className="inset-subtitle">1.3.7</span>
+              <span className="inset-subtitle">v1.3.8</span>
             </span>
           </button>
           <div className="inset-item">

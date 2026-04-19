@@ -244,7 +244,7 @@
 
 .submitBar {
   position: sticky;
-  bottom: calc(5.4rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(1rem + var(--safe-bottom));
   z-index: 12;
   padding: 0.45rem;
   border-radius: 999px;
@@ -252,6 +252,7 @@
   background: var(--color-surface-translucent);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(18px);
+  margin-top: auto;
 }
 
 .submitButton {

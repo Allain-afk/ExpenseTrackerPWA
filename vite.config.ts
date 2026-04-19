@@ -24,7 +24,6 @@ export default defineConfig({
         theme_color: defaultTheme.tokens.themeColor,
         background_color: defaultTheme.tokens.backgroundMid,
         display: 'standalone',
-        orientation: 'portrait',
         start_url: '/',
         icons: [
           {
@@ -47,7 +46,7 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,woff,woff2}'],
         navigateFallback: 'index.html',
       },
       devOptions: {

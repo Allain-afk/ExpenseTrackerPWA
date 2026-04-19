@@ -158,5 +158,10 @@ export function createWalletsRepository(client: DatabaseClient) {
       await client.sql('DELETE FROM transactions WHERE walletId = ?', id);
       await client.sql('DELETE FROM wallets WHERE id = ?', id);
     },
+
+    async clearWallets(): Promise<void> {
+      await ensureDatabaseReady();
+      await client.sql('DELETE FROM wallets');
+    },
   };
 }

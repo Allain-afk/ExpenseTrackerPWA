@@ -139,5 +139,10 @@ export function createBudgetsRepository(client: DatabaseClient) {
       }
       await client.sql('DELETE FROM budgets WHERE id = ?', id);
     },
+
+    async clearBudgets(): Promise<void> {
+      await ensureDatabaseReady();
+      await client.sql('DELETE FROM budgets');
+    },
   };
 }

@@ -123,6 +123,11 @@ export function createExpenseGroupsRepository(client: DatabaseClient) {
       await client.sql('DELETE FROM expense_groups WHERE id = ?', id);
     },
 
+    async clearExpenseGroups(): Promise<void> {
+      await ensureDatabaseReady();
+      await client.sql('DELETE FROM expense_groups');
+    },
+
     async getGroupsWithTotals(): Promise<Array<ExpenseGroup & { total: number }>> {
       await ensureDatabaseReady();
       const rows = await client.sql<ExpenseGroupRow & { total: number }>(`

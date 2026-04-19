@@ -28,6 +28,7 @@ import {
 import { useExpenseGroups } from '../hooks/useExpenseGroups';
 import { useSettings } from '../hooks/useSettings';
 import { useBudgets } from '../hooks/useBudgets';
+import { getSupabaseDisplayName } from '../lib/utils/supabaseUser';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 
@@ -74,31 +75,6 @@ function toMillis(value: string | null | undefined): number {
 
 function isRemoteNewer(remoteLastModified: string | null | undefined, localLastModified: string): boolean {
   return toMillis(remoteLastModified) > toMillis(localLastModified);
-}
-
-function getSupabaseDisplayName(input: unknown): string {
-  if (!input || typeof input !== 'object') {
-    return '';
-  }
-
-  const metadata = input as Record<string, unknown>;
-  const displayName = metadata.display_name;
-  const fullName = metadata.full_name;
-  const name = metadata.name;
-
-  if (typeof displayName === 'string' && displayName.trim()) {
-    return displayName.trim();
-  }
-
-  if (typeof fullName === 'string' && fullName.trim()) {
-    return fullName.trim();
-  }
-
-  if (typeof name === 'string' && name.trim()) {
-    return name.trim();
-  }
-
-  return '';
 }
 
 function normalizeWalletRemoteRow(row: Record<string, unknown>): SyncWalletRow | null {

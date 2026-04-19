@@ -13,6 +13,35 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Breakpoints (reference values; used in @media queries below) */
+  --bp-sm: 480px;
+  --bp-md: 720px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --space-8: 3rem;
+  /* Elevation scale */
+  --elev-1: 0 4px 10px rgba(15, 23, 42, 0.06);
+  --elev-2: 0 14px 28px rgba(15, 23, 42, 0.1);
+  --elev-3: 0 24px 60px rgba(15, 23, 42, 0.22);
+  /* Motion tokens */
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 360ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.83, 0, 0.17, 1);
+  /* Safe area helpers */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   --color-primary: #2563eb;
   --color-primary-light: #60a5fa;
   --color-primary-soft: rgba(37, 99, 235, 0.12);
@@ -93,13 +122,29 @@ img {
 
 .app-page {
   min-height: 100vh;
-  padding: 1rem 1rem 6rem;
+  padding: 1rem 1rem calc(6rem + var(--safe-bottom));
+}
+
+.app-content {
+  width: 100%;
+  max-width: min(44rem, 100%);
+  margin-inline: auto;
 }
 
 .page-content {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  width: 100%;
+  max-width: min(44rem, 100%);
+  margin-inline: auto;
+}
+
+@media (min-width: 1024px) {
+  .page-content {
+    max-width: min(50rem, 100%);
+    gap: 1.5rem;
+  }
 }
 
 .app-card {
@@ -408,8 +453,8 @@ img {
 
 .floating-action {
   position: fixed;
-  right: 1.25rem;
-  bottom: 6.75rem;
+  right: calc(1.25rem + var(--safe-right));
+  bottom: calc(6.75rem + var(--safe-bottom));
   z-index: 20;
   width: 3.6rem;
   height: 3.6rem;
@@ -435,6 +480,7 @@ img {
   justify-content: center;
   padding: 1rem;
   z-index: 1000;
+  animation: overlayFadeIn var(--motion-base) var(--ease-out) both;
 }
 
 .overlay-panel {
@@ -444,13 +490,42 @@ img {
   background: var(--color-surface-elevated);
   border-radius: 1.6rem;
   border: 1px solid var(--color-border);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  box-shadow: var(--elev-3);
+  animation: overlayPanelIn var(--motion-base) var(--ease-out) both;
 }
 
 .sheet-panel {
   width: min(44rem, 100%);
   align-self: flex-end;
   border-radius: 1.75rem 1.75rem 0 0;
+  animation: overlaySheetIn var(--motion-base) var(--ease-out) both;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlayPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes overlaySheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(1.2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .overlay-header {
@@ -698,5 +773,70 @@ img {
 
   .app-toast {
     width: calc(100vw - 1rem);
+  }
+}
+
+/* Tablet and up: make room for the side rail, widen content column. */
+@media (min-width: 720px) {
+  .app-page {
+    padding: 1.5rem 1.5rem calc(2.5rem + var(--safe-bottom));
+  }
+
+  .app-content {
+    max-width: min(46rem, 100%);
+  }
+
+  .floating-action {
+    bottom: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-page {
+    padding: 2rem 2rem calc(2.5rem + var(--safe-bottom));
+  }
+
+  .app-content {
+    max-width: min(50rem, 100%);
+  }
+}
+
+/* Staggered page-load reveal (opt-in via .reveal on children). */
+.reveal > * {
+  animation: revealUp var(--motion-base) var(--ease-out) both;
+}
+
+.reveal > *:nth-child(1) { animation-delay: 0ms; }
+.reveal > *:nth-child(2) { animation-delay: 40ms; }
+.reveal > *:nth-child(3) { animation-delay: 80ms; }
+.reveal > *:nth-child(4) { animation-delay: 120ms; }
+.reveal > *:nth-child(5) { animation-delay: 160ms; }
+.reveal > *:nth-child(6) { animation-delay: 200ms; }
+.reveal > *:nth-child(7) { animation-delay: 240ms; }
+.reveal > *:nth-child(n + 8) { animation-delay: 280ms; }
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal > * {
+    animation: none !important;
   }
 }

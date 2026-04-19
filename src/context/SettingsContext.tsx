@@ -2,11 +2,17 @@ import { createContext, useState, type ReactNode } from 'react';
 import { createSettingsStorage } from '../lib/db/settingsStorage';
 import { defaultSettings } from '../lib/constants/settings';
 import { createTransactionsRepository } from '../lib/db/repositories/transactionsRepository';
+import { createWalletsRepository } from '../lib/db/repositories/walletsRepository';
+import { createBudgetsRepository } from '../lib/db/repositories/budgetsRepository';
+import { createExpenseGroupsRepository } from '../lib/db/repositories/expenseGroupsRepository';
 import { databaseClient } from '../lib/db/client';
 import type { Settings, ThemeId } from '../types/models';
 
 const settingsStorage = createSettingsStorage(window.localStorage);
 const transactionsRepository = createTransactionsRepository(databaseClient);
+const walletsRepository = createWalletsRepository(databaseClient);
+const budgetsRepository = createBudgetsRepository(databaseClient);
+const expenseGroupsRepository = createExpenseGroupsRepository(databaseClient);
 
 export interface SettingsContextValue {
   settings: Settings;
@@ -147,6 +153,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   async function resetAllAppData(): Promise<void> {
     settingsStorage.clearAll();
     await transactionsRepository.clearTransactions();
+    await budgetsRepository.clearBudgets();
+    await expenseGroupsRepository.clearExpenseGroups();
+    await walletsRepository.clearWallets();
     setSettings(defaultSettings);
     setIsSetupComplete(false);
   }

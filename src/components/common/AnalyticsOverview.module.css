@@ -64,7 +64,9 @@
 }
 
 .chartWrap {
-  height: 148px;
+  aspect-ratio: 16 / 7;
+  min-height: 148px;
+  max-height: 240px;
   border: 1px solid var(--color-border);
   border-radius: 0.9rem;
   padding: 0.35rem 0.35rem 0.1rem;
