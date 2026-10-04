@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { SettingsScreen } from './SettingsScreen';
 import { showSuccessToast } from '../lib/utils/appToast';
 
-const bootstrap = vi.fn(async () => undefined);
+const bootstrap = vi.fn<(force?: boolean) => Promise<void>>(async () => undefined);
 const signInWithPassword = vi.fn(async (email: string) => {
   authState.user = {
     email,
