@@ -57,7 +57,11 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
   async function toggleBalance(key: string) {
     const next = new Set<string>(hiddenBalances);
-    next.has(key) ? next.delete(key) : next.add(key);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
     await settings.updateHiddenBalanceKeys(Array.from(next));
   }
   const visibleWallets = useMemo(() => {
@@ -77,7 +81,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
     }
 
     return balances;
-  }, [wallets.wallets, transactions.getWalletBalance]);
+  }, [transactions, wallets.wallets]);
 
   const totalWalletBalance = useMemo(() => {
     let total = 0;

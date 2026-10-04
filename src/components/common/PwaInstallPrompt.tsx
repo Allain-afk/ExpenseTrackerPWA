@@ -40,6 +40,12 @@ export function PwaInstallPrompt() {
       return;
     }
 
+    const openHelpTimeoutId = window.setTimeout(() => {
+      if (showIOSHelp || !canUseNativePrompt()) {
+        setIsOpen(true);
+      }
+    }, 0);
+
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
@@ -54,11 +60,8 @@ export function PwaInstallPrompt() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    if (showIOSHelp || !canUseNativePrompt()) {
-      setIsOpen(true);
-    }
-
     return () => {
+      window.clearTimeout(openHelpTimeoutId);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };

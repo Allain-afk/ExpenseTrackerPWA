@@ -16,7 +16,7 @@ export function useAppBootstrap(autoStart = false) {
 
     hasAutoStartedRef.current = true;
     void context.bootstrap();
-  }, [autoStart, context.bootstrap]);
+  }, [autoStart, context, context.bootstrap]);
 
   return context;
 }

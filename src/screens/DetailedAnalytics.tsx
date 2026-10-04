@@ -132,7 +132,7 @@ export function DetailedAnalytics({ currencySymbol }: DetailedAnalyticsProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [analyticsReferenceDate, monthlyChartDays, user?.id]);
+  }, [analyticsReferenceDate, monthlyChartDays, user]);
 
   useEffect(() => {
     let isCancelled = false;

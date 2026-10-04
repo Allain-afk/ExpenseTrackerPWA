@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from './Modal';
 import { useAuth } from '../../hooks/useAuth';
 import { useSync } from '../../hooks/useSync';
@@ -20,53 +20,50 @@ export function SyncAdoptionModal() {
   const [isChecking, setIsChecking] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const decisionKey = useMemo(() => {
-    if (!user?.id) {
-      return null;
-    }
-
-    return getDecisionKey(user.id);
-  }, [user?.id]);
+  const decisionKey = user?.id ? getDecisionKey(user.id) : null;
 
   useEffect(() => {
-    if (!hasBootstrapped || !user?.id || !decisionKey) {
-      setIsOpen(false);
-      return;
-    }
-
-    const existingDecision = window.localStorage.getItem(decisionKey);
-    if (existingDecision) {
-      setIsOpen(false);
-      return;
-    }
-
     let cancelled = false;
-    setIsChecking(true);
+    const checkTimeoutId = window.setTimeout(() => {
+      if (!hasBootstrapped || !user?.id || !decisionKey) {
+        setIsOpen(false);
+        return;
+      }
 
-    void getAnonymousLocalRowsCount()
-      .then((count) => {
-        if (cancelled) {
-          return;
-        }
+      const existingDecision = window.localStorage.getItem(decisionKey);
+      if (existingDecision) {
+        setIsOpen(false);
+        return;
+      }
 
-        setIsOpen(count > 0);
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
+      setIsChecking(true);
 
-        const message = error instanceof Error ? error.message : 'Unable to check local ownership.';
-        showErrorToast('Adoption check failed', message);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsChecking(false);
-        }
-      });
+      void getAnonymousLocalRowsCount()
+        .then((count) => {
+          if (cancelled) {
+            return;
+          }
+
+          setIsOpen(count > 0);
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+
+          const message = error instanceof Error ? error.message : 'Unable to check local ownership.';
+          showErrorToast('Adoption check failed', message);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsChecking(false);
+          }
+        });
+    }, 0);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(checkTimeoutId);
     };
   }, [decisionKey, getAnonymousLocalRowsCount, hasBootstrapped, user?.id]);
 

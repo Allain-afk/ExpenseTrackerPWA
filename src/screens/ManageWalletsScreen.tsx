@@ -186,7 +186,7 @@ export function ManageWalletsScreen() {
     }
 
     return balances;
-  }, [wallets.wallets, transactions.getWalletBalance]);
+  }, [transactions, wallets.wallets]);
 
   const totalBalance = useMemo(() => {
     let total = 0;

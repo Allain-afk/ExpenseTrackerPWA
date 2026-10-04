@@ -67,13 +67,19 @@ export function TransactionFormScreen() {
   useEffect(() => {
     const categories = selectedType === 'expense' ? expenseCategories : incomeCategories;
     if (!categories.includes(selectedCategory as never)) {
-      setSelectedCategory(categories[0]);
+      const timeoutId = window.setTimeout(() => {
+        setSelectedCategory(categories[0]);
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
     }
   }, [selectedCategory, selectedType]);
 
   useEffect(() => {
     if (!isEditing && selectedWalletId === null && wallets.wallets.length > 0) {
-      setSelectedWalletId(wallets.wallets[0].id ?? null);
+      const timeoutId = window.setTimeout(() => {
+        setSelectedWalletId(wallets.wallets[0].id ?? null);
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
     }
   }, [isEditing, selectedWalletId, wallets.wallets]);
 

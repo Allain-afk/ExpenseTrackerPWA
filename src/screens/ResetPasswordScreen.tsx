@@ -17,56 +17,60 @@ export function ResetPasswordScreen() {
   const auth = useAuth();
 
   useEffect(() => {
-    const client = supabase;
-    if (!client || !isSupabaseConfigured) {
-      setIsHydratingSession(false);
-      return;
-    }
-
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const searchParams = new URLSearchParams(window.location.search);
-    const errorDescription =
-      searchParams.get('error_description')
-      ?? hashParams.get('error_description')
-      ?? (searchParams.get('error') ?? hashParams.get('error'))
-      ?? null;
-
-    if (errorDescription) {
-      const message = decodeURIComponent(errorDescription.replace(/\+/g, ' '));
-      setRecoveryError(message);
-      setIsHydratingSession(false);
-      return;
-    }
-
-    const code = searchParams.get('code');
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-
-    const hydrateSession = async () => {
-      try {
-        if (code) {
-          const { error } = await client.auth.exchangeCodeForSession(code);
-          if (error) {
-            throw error;
-          }
-        } else if (accessToken && refreshToken) {
-          const { error } = await client.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (error) {
-            throw error;
-          }
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Reset link is invalid or expired.';
-        setRecoveryError(message);
-      } finally {
+    const timeoutId = window.setTimeout(() => {
+      const client = supabase;
+      if (!client || !isSupabaseConfigured) {
         setIsHydratingSession(false);
+        return;
       }
-    };
 
-    void hydrateSession();
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const searchParams = new URLSearchParams(window.location.search);
+      const errorDescription =
+        searchParams.get('error_description')
+        ?? hashParams.get('error_description')
+        ?? (searchParams.get('error') ?? hashParams.get('error'))
+        ?? null;
+
+      if (errorDescription) {
+        const message = decodeURIComponent(errorDescription.replace(/\+/g, ' '));
+        setRecoveryError(message);
+        setIsHydratingSession(false);
+        return;
+      }
+
+      const code = searchParams.get('code');
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      const hydrateSession = async () => {
+        try {
+          if (code) {
+            const { error } = await client.auth.exchangeCodeForSession(code);
+            if (error) {
+              throw error;
+            }
+          } else if (accessToken && refreshToken) {
+            const { error } = await client.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (error) {
+              throw error;
+            }
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Reset link is invalid or expired.';
+          setRecoveryError(message);
+        } finally {
+          setIsHydratingSession(false);
+        }
+      };
+
+      void hydrateSession();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

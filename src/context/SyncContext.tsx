@@ -595,7 +595,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     } finally {
       isSyncingRef.current = false;
     }
-  }, [budgets, expenseGroups, isConfigured, runSync, transactions, user?.id, wallets]);
+  }, [budgets, expenseGroups, isConfigured, runSync, transactions, user, wallets]);
 
   useEffect(() => {
     pendingDisplayNameHydrationRef.current = null;
@@ -712,7 +712,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    void syncNow({ silent: true });
+    const timeoutId = window.setTimeout(() => {
+      void syncNow({ silent: true });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [hasPendingLocalChanges, isConfigured, isOnline, syncNow, user]);
 
   useEffect(() => {
@@ -720,7 +724,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    void syncNow({ silent: true });
+    const timeoutId = window.setTimeout(() => {
+      void syncNow({ silent: true });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [isOnline, syncNow, user]);
 
   const value = useMemo<SyncContextValue>(

@@ -69,9 +69,9 @@ export function AnalyticsOverview({
     let isCancelled = false;
     let timeoutId: number | null = null;
 
-    setIsLoading(true);
-
     const execute = async () => {
+      setIsLoading(true);
+
       try {
         const nextSummary = await analyticsRepository.getAnalyticsSummary({ userId: user?.id ?? null });
         if (isCancelled) {

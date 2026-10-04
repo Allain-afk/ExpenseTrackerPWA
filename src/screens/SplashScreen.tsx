@@ -32,7 +32,7 @@ export function SplashScreen() {
     }, 2500);
 
     return () => window.clearTimeout(timer);
-  }, [bootstrapError, hasBootstrapped, isBootstrapping]);
+  }, [bootstrapError, hasBootstrapped, isBootstrapping, navigate]);
 
   return (
     <main className={styles.screen}>
