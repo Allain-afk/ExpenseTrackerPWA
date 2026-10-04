@@ -162,7 +162,10 @@ export function ResetPasswordScreen() {
     try {
       await auth.updatePassword(newPassword);
       await auth.signOut();
-      await bootstrap();
+      // The provider retains bootstrap failures for the destination's retry UI.
+      // The password change and sign-out have already succeeded, so do not leave
+      // the user on a form that would attempt the irreversible update again.
+      await bootstrap().catch(() => undefined);
       window.sessionStorage.removeItem(RECOVERY_EMAIL_KEY);
       window.sessionStorage.removeItem(RECOVERY_SENT_KEY);
       window.sessionStorage.removeItem(RECOVERY_VERIFIED_KEY);

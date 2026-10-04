@@ -198,4 +198,19 @@ describe('ResetPasswordScreen recovery flow', () => {
     readiness.resolve();
     expect(await screen.findByText('Sign-in destination')).toBeInTheDocument();
   });
+
+  test('finishes a successful password reset when the follow-up bootstrap reports an error', async () => {
+    bootstrap.mockRejectedValueOnce(new Error('Database unavailable'));
+    const user = await reachPasswordStep();
+
+    await user.type(screen.getByLabelText('New password'), 'Password123');
+    await user.type(screen.getByLabelText('Confirm new password'), 'Password123');
+    await user.click(screen.getByRole('button', { name: 'Reset password' }));
+
+    expect(await screen.findByText('Sign-in destination')).toBeInTheDocument();
+    expect(updatePassword).toHaveBeenCalledOnce();
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(window.sessionStorage.getItem('password_recovery_verified')).toBeNull();
+    expect(window.sessionStorage.getItem('open_auth_modal')).toBe('signin');
+  });
 });

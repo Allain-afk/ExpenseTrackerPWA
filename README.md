@@ -55,4 +55,6 @@ To configure it after pushing this repository:
 
 The scheduled runs are requested at 00:17 and 12:17 UTC. GitHub may delay scheduled jobs during busy periods. The request reads at most one wallet UUID and remains subject to the database's Row Level Security policies; an empty result is still a successful ping.
 
+For public repositories, GitHub automatically disables scheduled workflows after 60 days without repository activity. If this applies, check the workflow periodically and re-enable it from **Actions > Supabase Keep-Alive > Enable workflow**.
+
 This reduces the likelihood of an inactive free project being paused, but it is not a service guarantee. Supabase's paid plans are the supported option when a project must never be paused.
