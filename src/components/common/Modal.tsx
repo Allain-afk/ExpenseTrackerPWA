@@ -22,6 +22,29 @@ export function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+
+    const rememberFocusedElement = (event: FocusEvent) => {
+      if (event.target instanceof HTMLElement) {
+        returnFocusRef.current = event.target;
+      }
+    };
+
+    if (document.activeElement instanceof HTMLElement) {
+      returnFocusRef.current = document.activeElement;
+    }
+    document.addEventListener('focusin', rememberFocusedElement);
+    return () => document.removeEventListener('focusin', rememberFocusedElement);
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -29,15 +52,15 @@ export function Modal({
     }
 
     const previousOverflow = document.body.style.overflow;
-    returnFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
     document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
+    const currentFocus = document.activeElement;
+    if (!(currentFocus instanceof HTMLElement && panelRef.current?.contains(currentFocus))) {
+      closeButtonRef.current?.focus();
+    }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -73,8 +96,9 @@ export function Modal({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
       returnFocusRef.current?.focus();
+      returnFocusRef.current = null;
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) {
     return null;

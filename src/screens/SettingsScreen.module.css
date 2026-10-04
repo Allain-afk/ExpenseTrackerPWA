@@ -1,3 +1,52 @@
+.settingsHeader {
+  align-items: flex-start;
+}
+
+.settingsTitle {
+  margin: 0.35rem 0 0;
+  font-size: 1.85rem;
+  letter-spacing: -0.06em;
+}
+
+.statusIcon {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.successIcon {
+  background: color-mix(in srgb, var(--color-income) 12%, transparent);
+  color: var(--color-income);
+}
+
+.dangerIcon {
+  background: color-mix(in srgb, var(--color-expense) 12%, transparent);
+  color: var(--color-expense);
+}
+
+.dangerText {
+  color: var(--color-expense);
+}
+
+.neutralIcon {
+  background: color-mix(in srgb, var(--color-text-secondary) 12%, transparent);
+  color: var(--color-text-secondary);
+}
+
+.warningIcon {
+  background: color-mix(in srgb, #f97316 12%, transparent);
+  color: #c2410c;
+}
+
+.infoIcon {
+  background: color-mix(in srgb, #6366f1 12%, transparent);
+  color: #4f46e5;
+}
+
+.purpleIcon {
+  background: color-mix(in srgb, #a855f7 12%, transparent);
+  color: #7e22ce;
+}
+
 .themeGrid {
   display: grid;
   gap: 0.85rem;

@@ -1,8 +1,20 @@
 .summaryCard {
+  width: 100%;
   padding: 1.25rem;
   color: white;
   position: relative;
   overflow: hidden;
+  text-align: left;
+}
+
+.buttonIcon {
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.emptyAddAction {
+  display: inline-flex;
+  margin-top: 1rem;
 }
 
 .summaryCard h2,
@@ -151,16 +163,16 @@
 }
 
 .iconActionButton {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.9rem;
+  width: var(--min-touch-target);
+  height: var(--min-touch-target);
+  border-radius: var(--radius-control);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: transform var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out);
 }
 
 .iconActionButton:hover {
@@ -173,6 +185,12 @@
   margin-top: 0.55rem;
   background: rgba(71, 85, 105, 0.12);
   color: #475569;
+}
+
+.thresholdTag {
+  margin-top: 0.55rem;
+  background: color-mix(in srgb, var(--color-income) 10%, transparent);
+  color: var(--color-income);
 }
 
 @media (max-width: 640px) {

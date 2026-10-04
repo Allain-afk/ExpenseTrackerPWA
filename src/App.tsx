@@ -6,12 +6,6 @@ import { useSettings } from './hooks/useSettings';
 import { AppShell } from './components/layout/AppShell';
 import { SplashScreen } from './screens/SplashScreen';
 import { SetupScreen } from './screens/SetupScreen';
-import { GroupDetailScreen } from './screens/GroupDetailScreen';
-import { ManageWalletsScreen } from './screens/ManageWalletsScreen';
-import { BudgetingScreen } from './screens/BudgetingScreen';
-import { TransactionFormScreen } from './screens/TransactionFormScreen';
-import { GroupFormScreen } from './screens/GroupFormScreen';
-import { WalletFormScreen } from './screens/WalletFormScreen';
 import { ResetPasswordScreen } from './screens/ResetPasswordScreen';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { AppToaster } from './components/common/AppToaster';
@@ -21,6 +15,41 @@ const DetailedAnalytics = lazy(async () => {
   const module = await import('./screens/DetailedAnalytics');
   return { default: module.DetailedAnalytics };
 });
+
+const GroupDetailScreen = lazy(async () => ({
+  default: (await import('./screens/GroupDetailScreen')).GroupDetailScreen,
+}));
+const ManageWalletsScreen = lazy(async () => ({
+  default: (await import('./screens/ManageWalletsScreen')).ManageWalletsScreen,
+}));
+const BudgetingScreen = lazy(async () => ({
+  default: (await import('./screens/BudgetingScreen')).BudgetingScreen,
+}));
+const TransactionFormScreen = lazy(async () => ({
+  default: (await import('./screens/TransactionFormScreen')).TransactionFormScreen,
+}));
+const GroupFormScreen = lazy(async () => ({
+  default: (await import('./screens/GroupFormScreen')).GroupFormScreen,
+}));
+const WalletFormScreen = lazy(async () => ({
+  default: (await import('./screens/WalletFormScreen')).WalletFormScreen,
+}));
+
+function RouteFallback() {
+  return (
+    <div className="full-screen-state">
+      <div className="app-card state-card">
+        <div className="spinner" aria-hidden="true" />
+        <h1>Opening screen...</h1>
+        <p>Your offline data is ready while this view loads.</p>
+      </div>
+    </div>
+  );
+}
+
+function LazyRoute({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
+}
 
 function BootstrapBoundary({
   children,
@@ -99,7 +128,7 @@ function AppRoutes() {
         path="/groups/new"
         element={
           <BootstrapBoundary requireSetup>
-            <GroupFormScreen />
+            <LazyRoute><GroupFormScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -107,7 +136,7 @@ function AppRoutes() {
         path="/groups/:groupId/edit"
         element={
           <BootstrapBoundary requireSetup>
-            <GroupFormScreen />
+            <LazyRoute><GroupFormScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -115,7 +144,7 @@ function AppRoutes() {
         path="/groups/:groupId"
         element={
           <BootstrapBoundary requireSetup>
-            <GroupDetailScreen />
+            <LazyRoute><GroupDetailScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -123,7 +152,7 @@ function AppRoutes() {
         path="/transactions/new"
         element={
           <BootstrapBoundary requireSetup>
-            <TransactionFormScreen />
+            <LazyRoute><TransactionFormScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -131,7 +160,7 @@ function AppRoutes() {
         path="/transactions/:transactionId/edit"
         element={
           <BootstrapBoundary requireSetup>
-            <TransactionFormScreen />
+            <LazyRoute><TransactionFormScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -139,7 +168,7 @@ function AppRoutes() {
         path="/wallets"
         element={
           <BootstrapBoundary requireSetup>
-            <ManageWalletsScreen />
+            <LazyRoute><ManageWalletsScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -147,7 +176,7 @@ function AppRoutes() {
         path="/budgeting"
         element={
           <BootstrapBoundary requireSetup>
-            <BudgetingScreen />
+            <LazyRoute><BudgetingScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -155,7 +184,7 @@ function AppRoutes() {
         path="/budgeting/:planId"
         element={
           <BootstrapBoundary requireSetup>
-            <BudgetingScreen />
+            <LazyRoute><BudgetingScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -163,7 +192,7 @@ function AppRoutes() {
         path="/wallets/new"
         element={
           <BootstrapBoundary requireSetup>
-            <WalletFormScreen />
+            <LazyRoute><WalletFormScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -171,7 +200,7 @@ function AppRoutes() {
         path="/wallets/:walletId/edit"
         element={
           <BootstrapBoundary requireSetup>
-            <WalletFormScreen />
+            <LazyRoute><WalletFormScreen /></LazyRoute>
           </BootstrapBoundary>
         }
       />
@@ -179,17 +208,7 @@ function AppRoutes() {
         path="/analytics"
         element={
           <BootstrapBoundary requireSetup>
-            <Suspense
-              fallback={(
-                <div className="full-screen-state">
-                  <div className="app-card state-card">
-                    <div className="spinner" aria-hidden="true" />
-                    <h1>Opening analytics...</h1>
-                    <p>Your detailed reports are loading.</p>
-                  </div>
-                </div>
-              )}
-            >
+            <Suspense fallback={<RouteFallback />}>
               <DetailedAnalytics currencySymbol={currencySymbol} />
             </Suspense>
           </BootstrapBoundary>

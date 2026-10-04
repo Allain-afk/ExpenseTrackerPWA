@@ -529,10 +529,10 @@ export function SettingsScreen() {
     <main className="app-page">
       <div className="page-content">
         <header>
-          <div className="row-spread" style={{ alignItems: 'flex-start' }}>
+          <div className={`row-spread ${styles.settingsHeader}`}>
             <div>
               <p className="eyebrow">Preferences</p>
-              <h1 style={{ margin: '0.35rem 0 0', fontSize: '1.85rem', letterSpacing: '-0.06em' }}>
+              <h1 className={styles.settingsTitle}>
                 Settings
               </h1>
             </div>
@@ -543,7 +543,7 @@ export function SettingsScreen() {
         <SectionList headerText="Cloud Backup">
           {!auth.isConfigured ? (
             <div className="inset-item">
-              <span className="icon-chip" style={{ background: 'rgba(71,85,105,0.12)', color: '#475569' }}>
+              <span className={`icon-chip ${styles.neutralIcon}`}>
                 <MdCloudOff size={22} />
               </span>
               <span className="inset-item-content">
@@ -559,7 +559,7 @@ export function SettingsScreen() {
           {auth.isConfigured && !auth.user ? (
             <>
               <button className="inset-item" onClick={() => openAuthModal('signin')} type="button">
-                <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+                <span className={`icon-chip ${styles.statusIcon}`}>
                   <MdCloud size={22} />
                 </span>
                 <span className="inset-item-content">
@@ -568,7 +568,7 @@ export function SettingsScreen() {
                 </span>
               </button>
               <button className="inset-item" onClick={() => openAuthModal('signup')} type="button">
-                <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
+                <span className={`icon-chip ${styles.successIcon}`}>
                   <MdCloudSync size={22} />
                 </span>
                 <span className="inset-item-content">
@@ -582,7 +582,7 @@ export function SettingsScreen() {
           {auth.isConfigured && auth.user ? (
             <>
               <div className="inset-item">
-                <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
+                <span className={`icon-chip ${styles.successIcon}`}>
                   <MdCloud size={22} />
                 </span>
                 <span className="inset-item-content">
@@ -599,7 +599,7 @@ export function SettingsScreen() {
 
               {anonymousRowsCount > 0 ? (
                 <button className="inset-item" disabled={isAdoptingRows} onClick={() => void linkLocalRowsToAccount()} type="button">
-                  <span className="icon-chip" style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb' }}>
+                  <span className={`icon-chip ${styles.statusIcon}`}>
                     <MdCloudSync size={22} />
                   </span>
                   <span className="inset-item-content">
@@ -626,7 +626,7 @@ export function SettingsScreen() {
               </button>
 
               <button className="inset-item" onClick={() => void signOutCloud()} type="button">
-                <span className="icon-chip" style={{ background: 'rgba(249,115,22,0.12)', color: '#ea580c' }}>
+                <span className={`icon-chip ${styles.warningIcon}`}>
                   <MdPersonOutline size={22} />
                 </span>
                 <span className="inset-item-content">
@@ -639,7 +639,7 @@ export function SettingsScreen() {
         </SectionList>
         <SectionList headerText="Preferences">
           <button className="inset-item" onClick={() => setIsCurrencyOpen(true)} type="button">
-            <span className="icon-chip" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
+            <span className={`icon-chip ${styles.successIcon}`}>
               <MdAttachMoney size={22} />
             </span>
             <span className="inset-item-content">
@@ -671,7 +671,7 @@ export function SettingsScreen() {
             </span>
           </Link>
           <Link className="inset-item" to="/budgeting">
-            <span className="icon-chip" style={{ background: 'rgba(15,118,110,0.12)', color: '#0f766e' }}>
+            <span className={`icon-chip ${styles.successIcon}`}>
               <MdSavings size={22} />
             </span>
             <span className="inset-item-content">
@@ -683,7 +683,7 @@ export function SettingsScreen() {
 
         <SectionList headerText="Notifications">
           <button className="inset-item" onClick={() => void toggleNotifications(!settings.notificationsEnabled)} type="button">
-            <span className="icon-chip" style={{ background: 'rgba(249,115,22,0.12)', color: '#ea580c' }}>
+            <span className={`icon-chip ${styles.warningIcon}`}>
               <MdNotificationsActive size={22} />
             </span>
             <span className="inset-item-content">
@@ -703,7 +703,7 @@ export function SettingsScreen() {
                 }}
                 type="button"
               >
-                <span className="icon-chip" style={{ background: 'rgba(71,85,105,0.12)', color: '#475569' }}>
+                <span className={`icon-chip ${styles.neutralIcon}`}>
                   <MdWallet size={22} />
                 </span>
                 <span className="inset-item-content">
@@ -722,7 +722,7 @@ export function SettingsScreen() {
                 }}
                 type="button"
               >
-                <span className="icon-chip" style={{ background: 'rgba(99,102,241,0.12)', color: '#4338ca' }}>
+                <span className={`icon-chip ${styles.infoIcon}`}>
                   <MdMessage size={22} />
                 </span>
                 <span className="inset-item-content">
@@ -736,11 +736,11 @@ export function SettingsScreen() {
 
         <SectionList headerText="Data Management">
           <button className="inset-item" onClick={() => setIsResetOpen(true)} type="button">
-            <span className="icon-chip" style={{ background: 'rgba(244,63,94,0.12)', color: '#e11d48' }}>
+            <span className={`icon-chip ${styles.dangerIcon}`}>
               <MdDeleteForever size={22} />
             </span>
             <span className="inset-item-content">
-              <span className="inset-title" style={{ color: '#e11d48' }}>
+              <span className={`inset-title ${styles.dangerText}`}>
                 Reset All App Data
               </span>
               <span className="inset-subtitle">Delete all transactions and reset settings</span>
@@ -762,7 +762,7 @@ export function SettingsScreen() {
             }}
             to="/reset-password"
           >
-            <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
+            <span className={`icon-chip ${styles.statusIcon}`}>
               <MdLockReset size={22} />
             </span>
             <span className="inset-item-content">
@@ -785,7 +785,7 @@ export function SettingsScreen() {
             </span>
           </button>
           <div className="inset-item">
-            <span className="icon-chip" style={{ background: 'rgba(168,85,247,0.12)', color: '#7e22ce' }}>
+            <span className={`icon-chip ${styles.purpleIcon}`}>
               <MdPersonOutline size={22} />
             </span>
             <span className="inset-item-content">

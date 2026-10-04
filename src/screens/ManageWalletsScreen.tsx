@@ -85,7 +85,7 @@ function SortableWalletRow({ wallet, balanceLabel, currencySymbol }: SortableWal
               </span>
             ) : null}
             {wallet.lowBalanceThreshold != null ? (
-              <span className={`tag ${styles.hiddenTag}`} style={{ background: 'rgba(15,118,110,0.10)', color: '#0f766e' }}>
+              <span className={`tag ${styles.thresholdTag}`}>
                 Limit: {formatMoney(wallet.lowBalanceThreshold, currencySymbol)}
               </span>
             ) : null}
@@ -241,8 +241,8 @@ export function ManageWalletsScreen() {
         <PageHeader
           action={
             <Link className="primary-button" to="/wallets/new">
-              <MdAdd size={18} style={{ marginRight: '0.35rem', verticalAlign: 'middle' }} />
-              Add Card
+              <MdAdd aria-hidden="true" className={styles.buttonIcon} size={18} />
+              Add card
             </Link>
           }
           backTo="/app/settings"
@@ -252,7 +252,7 @@ export function ManageWalletsScreen() {
         <button
           className={`app-card ${styles.summaryCard}`}
           onClick={() => setIsMainWalletOpen(true)}
-          style={{ background: mainCardGradient, textAlign: 'left', width: '100%' }}
+          style={{ background: mainCardGradient }}
           type="button"
         >
           <div className={styles.summaryHeader}>
@@ -288,7 +288,7 @@ export function ManageWalletsScreen() {
         {orderedWallets.length ? (
           <>
             <div className={styles.dragHint}>
-              <p className="eyebrow">Home Card Order</p>
+              <p className="eyebrow">Home card order</p>
               <p className={styles.dragHelper}>
                 Drag a handle to change which wallet card appears first on Home.
               </p>
@@ -317,9 +317,9 @@ export function ManageWalletsScreen() {
           <div className="app-card empty-state">
             <h3>No additional cards yet</h3>
             <p>Your main card is ready. Add another card to separate balances by account.</p>
-            <Link className="primary-button" style={{ marginTop: '1rem', display: 'inline-flex' }} to="/wallets/new">
-              <MdAdd size={18} style={{ marginRight: '0.35rem' }} />
-              Add Card
+            <Link className={`primary-button ${styles.emptyAddAction}`} to="/wallets/new">
+              <MdAdd aria-hidden="true" className={styles.buttonIcon} size={18} />
+              Add card
             </Link>
           </div>
         )}
