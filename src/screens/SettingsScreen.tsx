@@ -240,6 +240,8 @@ export function SettingsScreen() {
   const settings = useSettings();
   const transactions = useTransactions();
   const auth = useAuth();
+  const shouldOpenAuthModal = typeof window !== 'undefined'
+    && window.sessionStorage.getItem('open_auth_modal') === 'signin';
   const {
     adoptAnonymousRowsForUser,
     getAnonymousLocalRowsCount,
@@ -254,9 +256,7 @@ export function SettingsScreen() {
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [isVersionOpen, setIsVersionOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
-  const [isSecurityOpen, setIsSecurityOpen] = useState(false);
-  const [securityEmail, setSecurityEmail] = useState('');
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(shouldOpenAuthModal);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -268,6 +268,12 @@ export function SettingsScreen() {
   const activeTheme = getThemePreset(settings.themeId);
   const currentUserId = auth.user?.id ?? null;
   const onboardingName = settings.userName.trim();
+
+  useEffect(() => {
+    if (shouldOpenAuthModal) {
+      window.sessionStorage.removeItem('open_auth_modal');
+    }
+  }, [shouldOpenAuthModal]);
 
   useEffect(() => {
     if (!auth.user || !onboardingName) {
@@ -453,36 +459,21 @@ export function SettingsScreen() {
     }
   }
 
-  async function handleForgotPassword(): Promise<void> {
-    if (!authEmail.trim()) {
-      showErrorToast('Email required', 'Please enter your email address to reset your password.');
-      return;
-    }
-
-    try {
-      await auth.sendPasswordResetEmail(authEmail.trim());
-      showSuccessToast('Reset link sent', 'Check your email for instructions to reset your password.');
-    } catch (error) {
-      showErrorToast('Reset failed', (error as Error).message);
-    }
-  }
-
-  async function requestPasswordReset(): Promise<void> {
-    if (!securityEmail.trim()) {
-      showErrorToast('Email required', 'Please enter the email address to reset the password.');
-      return;
-    }
-
-    try {
-      await auth.sendPasswordResetEmail(securityEmail.trim());
-      setIsSecurityOpen(false);
-      setSecurityEmail('');
-      showSuccessToast(
-        'Reset link sent',
-        'If the email exists, a password reset link has been sent.',
-      );
-    } catch (error) {
-      showErrorToast('Reset failed', (error as Error).message);
+  function rememberRecoveryEmail(value: string | undefined): void {
+    const email = value?.trim().toLowerCase();
+    if (email) {
+      const previousEmail = window.sessionStorage.getItem('password_recovery_email');
+      if (previousEmail !== email) {
+        window.sessionStorage.removeItem('password_recovery_code_sent');
+        window.sessionStorage.removeItem('password_recovery_verified');
+        window.sessionStorage.removeItem('password_recovery_resend_at');
+      }
+      window.sessionStorage.setItem('password_recovery_email', email);
+    } else {
+      window.sessionStorage.removeItem('password_recovery_email');
+      window.sessionStorage.removeItem('password_recovery_code_sent');
+      window.sessionStorage.removeItem('password_recovery_verified');
+      window.sessionStorage.removeItem('password_recovery_resend_at');
     }
   }
 
@@ -742,24 +733,23 @@ export function SettingsScreen() {
         </SectionList>
 
         <SectionList headerText="Security">
-          <button
+          <Link
             className="inset-item"
             onClick={() => {
-              setSecurityEmail(auth.user?.email ?? '');
-              setIsSecurityOpen(true);
+              rememberRecoveryEmail(auth.user?.email);
             }}
-            type="button"
+            to="/reset-password"
           >
             <span className="icon-chip" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
               <MdLockReset size={22} />
             </span>
             <span className="inset-item-content">
-              <span className="inset-title">Request a Password Reset</span>
+              <span className="inset-title">Reset Password</span>
               <span className="inset-subtitle">
-                Send a reset link to your email address (expires in 1 hour)
+                Verify your email with a six-digit recovery code
               </span>
             </span>
-          </button>
+          </Link>
         </SectionList>
 
         <SectionList headerText="About">
@@ -906,37 +896,6 @@ export function SettingsScreen() {
       </Modal>
 
       <Modal
-        description="We will send a reset link if the address is registered."
-        onClose={() => setIsSecurityOpen(false)}
-        open={isSecurityOpen}
-        title="Request Password Reset"
-      >
-        <div className="stack-form">
-          <div className="form-field">
-            <label className="field-label" htmlFor="security-email-input">
-              Email Address
-            </label>
-            <input
-              autoComplete="email"
-              className="text-input"
-              id="security-email-input"
-              onChange={(event) => setSecurityEmail(event.target.value)}
-              placeholder="you@example.com"
-              type="email"
-              value={securityEmail}
-            />
-          </div>
-          <button
-            className="primary-button"
-            onClick={() => void requestPasswordReset()}
-            type="button"
-          >
-            Send Reset Email
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
         onClose={() => setIsVersionOpen(false)}
         open={isVersionOpen}
         title="Version History"
@@ -1023,14 +982,17 @@ export function SettingsScreen() {
               value={authPassword}
             />
             {authMode === 'signin' && (
-              <button
+              <Link
                 className="text-button"
-                onClick={() => void handleForgotPassword()}
+                onClick={() => {
+                  rememberRecoveryEmail(authEmail);
+                  setIsAuthOpen(false);
+                }}
                 style={{ alignSelf: 'flex-start', marginTop: '0.5rem', fontSize: '0.8em', padding: 0 }}
-                type="button"
+                to="/reset-password"
               >
                 Forgot password?
-              </button>
+              </Link>
             )}
           </div>
 

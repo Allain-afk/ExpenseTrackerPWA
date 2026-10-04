@@ -14,9 +14,11 @@ export interface AuthContextValue {
   authError: string | null;
   user: User | null;
   session: Session | null;
+  isPasswordRecoverySession: boolean;
   signUpWithPassword: (email: string, password: string, displayName?: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
-  sendPasswordResetEmail: (email: string) => Promise<void>;
+  requestPasswordResetOtp: (email: string) => Promise<void>;
+  verifyPasswordResetOtp: (email: string, token: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   syncDisplayName: (displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [isPasswordRecoverySession, setIsPasswordRecoverySession] = useState(false);
 
   useEffect(() => {
     if (!supabase || !isSupabaseConfigured) {
@@ -69,13 +72,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!isMounted) {
         return;
       }
 
       setSession(nextSession ?? null);
       setUser(nextSession?.user ?? null);
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecoverySession(true);
+      } else if (event === 'SIGNED_OUT') {
+        setIsPasswordRecoverySession(false);
+      }
       setAuthError(null);
       setIsLoading(false);
     });
@@ -142,10 +150,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function sendPasswordResetEmail(email: string): Promise<void> {
+  async function requestPasswordResetOtp(email: string): Promise<void> {
     if (!supabase || !isSupabaseConfigured) {
-      setAuthError('Supabase is not configured.');
-      return;
+      const message = 'Cloud password recovery is unavailable on this installation.';
+      setAuthError(message);
+      throw new Error(message);
     }
 
     setAuthError(null);
@@ -153,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ensure no trailing slash before appending path
     const redirectTo = baseUrl.endsWith('/') ? `${baseUrl}reset-password` : `${baseUrl}/reset-password`;
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo,
     });
     if (error) {
@@ -163,10 +172,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function verifyPasswordResetOtp(email: string, token: string): Promise<void> {
+    if (!supabase || !isSupabaseConfigured) {
+      const message = 'Cloud password recovery is unavailable on this installation.';
+      setAuthError(message);
+      throw new Error(message);
+    }
+
+    setAuthError(null);
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token,
+      type: 'recovery',
+    });
+    if (error) {
+      const message = getErrorMessage(error);
+      setAuthError(message);
+      throw new Error(message);
+    }
+    setIsPasswordRecoverySession(true);
+  }
+
   async function updatePassword(password: string): Promise<void> {
     if (!supabase || !isSupabaseConfigured) {
-      setAuthError('Supabase is not configured.');
-      return;
+      const message = 'Cloud password recovery is unavailable on this installation.';
+      setAuthError(message);
+      throw new Error(message);
     }
 
     setAuthError(null);
@@ -223,15 +254,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authError,
       user,
       session,
+      isPasswordRecoverySession,
       signUpWithPassword,
       signInWithPassword,
-      sendPasswordResetEmail,
+      requestPasswordResetOtp,
+      verifyPasswordResetOtp,
       updatePassword,
       syncDisplayName,
       signOut,
       clearAuthError: () => setAuthError(null),
     }),
-    [authError, isLoading, session, user],
+    [authError, isLoading, isPasswordRecoverySession, session, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
