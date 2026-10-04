@@ -3,15 +3,17 @@ import type { ReactNode } from 'react';
 interface SectionListProps {
   headerText?: string;
   footerText?: string;
+  action?: ReactNode;
   children: ReactNode;
 }
 
-export function SectionList({ children, footerText, headerText }: SectionListProps) {
+export function SectionList({ action, children, footerText, headerText }: SectionListProps) {
   return (
     <section className="section-shell">
-      {headerText ? (
+      {headerText || action ? (
         <div className="section-header">
-          <h2>{headerText}</h2>
+          {headerText ? <h2>{headerText}</h2> : <span />}
+          {action}
         </div>
       ) : null}
       <div className="inset-list">{children}</div>
