@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -198,5 +198,16 @@ describe('Settings authentication transitions', () => {
 
     await waitFor(() => expect(order).toEqual(['delete', 'bootstrap:true']));
     timeoutSpy.mockRestore();
+  });
+
+  test('presents version 1.3.9 as the single latest release', async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: /^version/i }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Version History' });
+    expect(within(dialog).getByText('v1.3.9')).toBeInTheDocument();
+    expect(within(dialog).getAllByText('Latest')).toHaveLength(1);
   });
 });
