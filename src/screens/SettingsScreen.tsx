@@ -29,6 +29,7 @@ import { SectionList } from '../components/common/SectionList';
 import { Modal } from '../components/common/Modal';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { SyncStatusIcon } from '../components/common/SyncStatusIcon';
+import { CloudDataDeletionControl } from '../components/common/CloudDataDeletionControl';
 import { getSupabaseDisplayName } from '../lib/utils/supabaseUser';
 import styles from './SettingsScreen.module.css';
 
@@ -244,6 +245,7 @@ export function SettingsScreen() {
     && window.sessionStorage.getItem('open_auth_modal') === 'signin';
   const {
     adoptAnonymousRowsForUser,
+    deleteCloudDataForCurrentUser,
     getAnonymousLocalRowsCount,
     isOnline,
     status,
@@ -474,6 +476,20 @@ export function SettingsScreen() {
       window.sessionStorage.removeItem('password_recovery_code_sent');
       window.sessionStorage.removeItem('password_recovery_verified');
       window.sessionStorage.removeItem('password_recovery_resend_at');
+    }
+  }
+
+  async function deleteAllCloudData(): Promise<void> {
+    try {
+      await deleteCloudDataForCurrentUser();
+      showSuccessToast('Cloud data deleted', 'Your synced data was erased and you have been signed out.');
+      window.setTimeout(() => {
+        window.location.replace('/');
+      }, 120);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Cloud data deletion failed.';
+      showErrorToast('Cloud deletion needs attention', message);
+      throw error;
     }
   }
 
@@ -730,6 +746,12 @@ export function SettingsScreen() {
               <span className="inset-subtitle">Delete all transactions and reset settings</span>
             </span>
           </button>
+          {auth.isConfigured && auth.user?.email ? (
+            <CloudDataDeletionControl
+              accountEmail={auth.user.email}
+              onDelete={deleteAllCloudData}
+            />
+          ) : null}
         </SectionList>
 
         <SectionList headerText="Security">

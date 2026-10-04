@@ -5,4 +5,7 @@ export interface DatabaseClient {
     queryTemplate: TemplateStringsArray | string,
     ...params: unknown[]
   ): Promise<Result[]>;
+  transaction<Result>(
+    callback: (transaction: Pick<DatabaseClient, 'sql'>) => Promise<Result>,
+  ): Promise<Result>;
 }

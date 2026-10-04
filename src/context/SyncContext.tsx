@@ -35,8 +35,10 @@ import { getSupabaseDisplayName } from '../lib/utils/supabaseUser';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useBudgeting } from '../hooks/useBudgeting';
+import { deleteCloudData } from '../lib/supabase/deleteCloudData';
 
 export type SyncStatus = 'idle' | 'offline' | 'syncing' | 'success' | 'error';
+const CLOUD_DELETE_SYNC_SUSPENSION_KEY = 'cloud_delete_sync_suspended_user';
 
 interface SyncNowOptions {
   silent?: boolean;
@@ -63,6 +65,7 @@ export interface SyncContextValue {
   syncNow: (options?: SyncNowOptions) => Promise<void>;
   getAnonymousLocalRowsCount: () => Promise<number>;
   adoptAnonymousRowsForUser: (userId: string) => Promise<void>;
+  deleteCloudDataForCurrentUser: () => Promise<void>;
 }
 
 const syncRepository = createSyncRepository(databaseClient);
@@ -288,7 +291,8 @@ function toBudgetAllocationRemotePayload(row: SyncBudgetAllocationRow) {
 }
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const { user, isConfigured } = useAuth();
+  const auth = useAuth();
+  const { user, isConfigured } = auth;
   const settings = useSettings();
   const transactions = useTransactions();
   const wallets = useWallets();
@@ -681,6 +685,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (window.localStorage.getItem(CLOUD_DELETE_SYNC_SUSPENSION_KEY) === user.id) {
+      setStatus('error');
+      setLastError('Cloud sync is paused until cloud data deletion is retried.');
+      if (!options?.silent) {
+        showWarningToast(
+          'Cloud sync paused',
+          'Retry Delete Cloud Data from Settings before syncing this account again.',
+        );
+      }
+      return;
+    }
+
     if (!navigator.onLine) {
       setStatus('offline');
       if (!options?.silent) {
@@ -758,6 +774,45 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       isSyncingRef.current = false;
     }
   }, [budgets, budgeting, expenseGroups, isConfigured, runSync, transactions, user, wallets]);
+
+  const deleteCloudDataForCurrentUser = useCallback(async (): Promise<void> => {
+    if (!isConfigured || !supabase || !user) {
+      throw new Error('Sign in to a configured cloud account before deleting cloud data.');
+    }
+    const client = supabase;
+    if (isSyncingRef.current) {
+      throw new Error('A cloud sync is currently running. Wait for it to finish and try again.');
+    }
+
+    isSyncingRef.current = true;
+    setStatus('syncing');
+    setLastError(null);
+    try {
+      await deleteCloudData({
+        invokeDelete: async () => {
+          const { error } = await client.rpc('delete_my_cloud_data');
+          return { error };
+        },
+        clearLocalRows: () => syncRepository.clearRowsForUser(user.id),
+        suspendSync: () => window.localStorage.setItem(CLOUD_DELETE_SYNC_SUSPENSION_KEY, user.id),
+        resumeSync: () => {
+          if (window.localStorage.getItem(CLOUD_DELETE_SYNC_SUSPENSION_KEY) === user.id) {
+            window.localStorage.removeItem(CLOUD_DELETE_SYNC_SUSPENSION_KEY);
+          }
+        },
+        signOut: auth.signOut,
+      });
+      setStatus('idle');
+      setLastSyncedAt(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Cloud data deletion failed.';
+      setStatus('error');
+      setLastError(message);
+      throw new Error(message);
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [auth.signOut, isConfigured, user]);
 
   useEffect(() => {
     pendingDisplayNameHydrationRef.current = null;
@@ -903,8 +958,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       syncNow,
       getAnonymousLocalRowsCount: syncRepository.getAnonymousOwnershipCount,
       adoptAnonymousRowsForUser: syncRepository.adoptAnonymousRows,
+      deleteCloudDataForCurrentUser,
     }),
-    [isOnline, lastError, lastSyncedAt, status, syncNow],
+    [deleteCloudDataForCurrentUser, isOnline, lastError, lastSyncedAt, status, syncNow],
   );
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;

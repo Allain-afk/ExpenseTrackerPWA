@@ -8,6 +8,12 @@ const DATABASE_INIT_TIMEOUT_MS = 15000;
 export const databaseClient: DatabaseClient = {
   sql: <Result,>(...args: Parameters<DatabaseClient['sql']>) =>
     sqlocalClient.sql(...args) as Promise<Result[]>,
+  transaction: <Result,>(
+    callback: (transaction: Pick<DatabaseClient, 'sql'>) => Promise<Result>,
+  ) => sqlocalClient.transaction(async (transaction) => callback({
+    sql: <Row,>(...args: Parameters<DatabaseClient['sql']>) =>
+      transaction.sql(...args) as Promise<Row[]>,
+  })),
 };
 
 let initializationPromise: Promise<void> | null = null;

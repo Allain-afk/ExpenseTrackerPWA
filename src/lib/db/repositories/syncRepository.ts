@@ -227,6 +227,38 @@ export function createSyncRepository(client: DatabaseClient) {
       }
     },
 
+    async clearRowsForUser(userId: string): Promise<void> {
+      await ensureDatabaseReady();
+      await client.transaction(async (transaction) => {
+        await transaction.sql(
+          `DELETE FROM deleted_entities
+           WHERE uuid IN (
+             SELECT uuid FROM wallets WHERE user_id = ?
+             UNION SELECT uuid FROM expense_groups WHERE user_id = ?
+             UNION SELECT uuid FROM transactions WHERE user_id = ?
+             UNION SELECT uuid FROM budgets WHERE user_id = ?
+             UNION SELECT uuid FROM budget_plans WHERE user_id = ?
+             UNION SELECT uuid FROM budget_cutoffs WHERE user_id = ?
+             UNION SELECT uuid FROM budget_allocations WHERE user_id = ?
+           )`,
+          userId,
+          userId,
+          userId,
+          userId,
+          userId,
+          userId,
+          userId,
+        );
+        await transaction.sql('DELETE FROM budget_allocations WHERE user_id = ?', userId);
+        await transaction.sql('DELETE FROM budget_cutoffs WHERE user_id = ?', userId);
+        await transaction.sql('DELETE FROM budget_plans WHERE user_id = ?', userId);
+        await transaction.sql('DELETE FROM transactions WHERE user_id = ?', userId);
+        await transaction.sql('DELETE FROM budgets WHERE user_id = ?', userId);
+        await transaction.sql('DELETE FROM expense_groups WHERE user_id = ?', userId);
+        await transaction.sql('DELETE FROM wallets WHERE user_id = ?', userId);
+      });
+    },
+
     async getPendingRowsForUser(userId: string): Promise<SyncPendingData> {
       await ensureDatabaseReady();
       const [wallets, expenseGroups, transactions, budgets, budgetPlans, budgetCutoffs, budgetAllocations] = await Promise.all([
