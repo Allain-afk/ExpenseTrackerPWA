@@ -10,6 +10,7 @@ import {
 } from 'react-icons/md';
 import { PageHeader } from '../components/common/PageHeader';
 import { useAuth } from '../hooks/useAuth';
+import { useAppBootstrap } from '../hooks/useAppBootstrap';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import styles from './ResetPasswordScreen.module.css';
 
@@ -62,6 +63,7 @@ export function ResetPasswordScreen() {
   const [cooldown, setCooldown] = useState(initialCooldown);
   const navigate = useNavigate();
   const auth = useAuth();
+  const { bootstrap } = useAppBootstrap();
 
   useEffect(() => {
     if (cooldown <= 0) {
@@ -160,6 +162,7 @@ export function ResetPasswordScreen() {
     try {
       await auth.updatePassword(newPassword);
       await auth.signOut();
+      await bootstrap();
       window.sessionStorage.removeItem(RECOVERY_EMAIL_KEY);
       window.sessionStorage.removeItem(RECOVERY_SENT_KEY);
       window.sessionStorage.removeItem(RECOVERY_VERIFIED_KEY);

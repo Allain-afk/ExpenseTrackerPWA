@@ -22,6 +22,7 @@ import { formatMoney } from '../lib/utils/format';
 import { showErrorToast, showInfoToast, showSuccessToast } from '../lib/utils/appToast';
 import { requestNotificationPermission } from '../lib/utils/notifications';
 import { useAuth } from '../hooks/useAuth';
+import { useAppBootstrap } from '../hooks/useAppBootstrap';
 import { useSettings } from '../hooks/useSettings';
 import { useSync } from '../hooks/useSync';
 import { useTransactions } from '../hooks/useTransactions';
@@ -241,6 +242,7 @@ export function SettingsScreen() {
   const settings = useSettings();
   const transactions = useTransactions();
   const auth = useAuth();
+  const { bootstrap } = useAppBootstrap();
   const shouldOpenAuthModal = typeof window !== 'undefined'
     && window.sessionStorage.getItem('open_auth_modal') === 'signin';
   const {
@@ -478,10 +480,8 @@ export function SettingsScreen() {
   async function deleteAllCloudData(): Promise<void> {
     try {
       await deleteCloudDataForCurrentUser();
+      await bootstrap(true);
       showSuccessToast('Cloud data deleted', 'Your synced data was erased and you have been signed out.');
-      window.setTimeout(() => {
-        window.location.replace('/');
-      }, 120);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Cloud data deletion failed.';
       showErrorToast('Cloud deletion needs attention', message);

@@ -16,6 +16,7 @@ const signInWithPassword = vi.fn(async (email: string) => {
 const signOut = vi.fn(async () => {
   authState.user = null;
 });
+const deleteCloudDataForCurrentUser = vi.fn(async () => undefined);
 
 const authState = vi.hoisted(() => ({
   user: null as null | {
@@ -87,7 +88,7 @@ vi.mock('../hooks/useTransactions', () => ({
 vi.mock('../hooks/useSync', () => ({
   useSync: () => ({
     adoptAnonymousRowsForUser: vi.fn(async () => undefined),
-    deleteCloudDataForCurrentUser: vi.fn(async () => undefined),
+    deleteCloudDataForCurrentUser,
     getAnonymousLocalRowsCount: vi.fn(async () => 0),
     isOnline: true,
     status: 'idle',
@@ -115,6 +116,8 @@ describe('Settings authentication transitions', () => {
     bootstrap.mockClear();
     signInWithPassword.mockClear();
     signOut.mockClear();
+    deleteCloudDataForCurrentUser.mockReset();
+    deleteCloudDataForCurrentUser.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -164,5 +167,36 @@ describe('Settings authentication transitions', () => {
     expect(signOut).toHaveBeenCalledOnce();
     expect(bootstrap).not.toHaveBeenCalled();
     expect(screen.queryByText('Loading your offline data...')).not.toBeInTheDocument();
+  });
+
+  test('refreshes local contexts after cloud deletion without reloading', async () => {
+    authState.user = {
+      email: 'user@example.com',
+      id: 'user-1',
+      user_metadata: {},
+    };
+    const order: string[] = [];
+    deleteCloudDataForCurrentUser.mockImplementation(async () => {
+      order.push('delete');
+    });
+    bootstrap.mockImplementation(async (force) => {
+      order.push(`bootstrap:${String(force)}`);
+    });
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: 'Delete Cloud Data' }));
+    await user.type(screen.getByLabelText(/type delete cloud data/i), 'DELETE CLOUD DATA');
+    const originalSetTimeout = window.setTimeout.bind(window);
+    const timeoutSpy = vi.spyOn(window, 'setTimeout').mockImplementation((handler, timeout, ...args) => {
+      if (timeout === 120) {
+        return 1;
+      }
+      return originalSetTimeout(handler, timeout, ...args);
+    });
+    await user.click(screen.getByRole('button', { name: /permanently delete cloud data/i }));
+
+    await waitFor(() => expect(order).toEqual(['delete', 'bootstrap:true']));
+    timeoutSpy.mockRestore();
   });
 });

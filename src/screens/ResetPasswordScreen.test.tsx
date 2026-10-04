@@ -8,6 +8,7 @@ const requestPasswordResetOtp = vi.fn(async () => undefined);
 const verifyPasswordResetOtp = vi.fn(async () => undefined);
 const updatePassword = vi.fn(async () => undefined);
 const signOut = vi.fn(async () => undefined);
+const bootstrap = vi.fn(async () => undefined);
 const authState = vi.hoisted(() => ({
   isConfigured: true,
   isPasswordRecoverySession: false,
@@ -27,6 +28,15 @@ vi.mock('../hooks/useAuth', () => ({
   }),
 }));
 
+vi.mock('../hooks/useAppBootstrap', () => ({
+  useAppBootstrap: () => ({
+    bootstrap,
+    bootstrapError: null,
+    hasBootstrapped: true,
+    isBootstrapping: false,
+  }),
+}));
+
 vi.mock('../lib/utils/appToast', () => ({
   showErrorToast: vi.fn(),
   showSuccessToast: vi.fn(),
@@ -40,6 +50,8 @@ beforeEach(() => {
   verifyPasswordResetOtp.mockClear();
   updatePassword.mockClear();
   signOut.mockClear();
+  bootstrap.mockReset();
+  bootstrap.mockResolvedValue(undefined);
   authState.isConfigured = true;
   authState.isPasswordRecoverySession = false;
   authState.session = null;
@@ -67,6 +79,14 @@ async function reachPasswordStep() {
   await user.click(screen.getByRole('button', { name: 'Verify code' }));
 
   return user;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
 }
 
 describe('ResetPasswordScreen recovery flow', () => {
@@ -151,5 +171,31 @@ describe('ResetPasswordScreen recovery flow', () => {
     expect(signOut).toHaveBeenCalledOnce();
     expect(await screen.findByText('Sign-in destination')).toBeInTheDocument();
     expect(window.sessionStorage.getItem('open_auth_modal')).toBe('signin');
+  });
+
+  test('waits for local bootstrap before opening the sign-in destination', async () => {
+    const readiness = deferred<void>();
+    const order: string[] = [];
+    updatePassword.mockImplementationOnce(async () => {
+      order.push('password');
+    });
+    signOut.mockImplementationOnce(async () => {
+      order.push('signout');
+    });
+    bootstrap.mockImplementationOnce(async () => {
+      order.push('bootstrap');
+      await readiness.promise;
+    });
+    const user = await reachPasswordStep();
+
+    await user.type(screen.getByLabelText('New password'), 'Password123');
+    await user.type(screen.getByLabelText('Confirm new password'), 'Password123');
+    await user.click(screen.getByRole('button', { name: 'Reset password' }));
+
+    expect(order).toEqual(['password', 'signout', 'bootstrap']);
+    expect(screen.queryByText('Sign-in destination')).not.toBeInTheDocument();
+
+    readiness.resolve();
+    expect(await screen.findByText('Sign-in destination')).toBeInTheDocument();
   });
 });
