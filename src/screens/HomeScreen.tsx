@@ -23,6 +23,8 @@ import { moneySavingTips } from '../lib/constants/moneySavingTips';
 import { SectionList } from '../components/common/SectionList';
 import { Modal } from '../components/common/Modal';
 import { SyncStatusIcon } from '../components/common/SyncStatusIcon';
+import { MonthlySummary } from '../components/common/MonthlySummary';
+import { getMonthlySummary } from '../lib/utils/monthlySummary';
 import styles from './HomeScreen.module.css';
 
 interface HomeScreenProps {
@@ -102,6 +104,10 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
   const dailyTipIndex = getDailyTipIndex(new Date(), moneySavingTips.length);
   const dailyTip = moneySavingTips[dailyTipIndex];
   const recentTransactions = transactions.transactions.slice(0, 3);
+  const monthlySummary = useMemo(
+    () => getMonthlySummary(transactions.transactions, budgets.budgets, new Date()),
+    [budgets.budgets, transactions.transactions],
+  );
 
   async function refreshHome(): Promise<void> {
     await Promise.all([transactions.loadTransactions(), wallets.loadWallets(), budgets.loadBudgets()]);
@@ -129,11 +135,18 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
         <div className="scroll-row">
           {!settings.mainWalletHidden ? (
-            <button
+            <div
               className={`${styles.walletCard} app-card`}
               onClick={openMainWalletEditor}
+              onKeyDown={(event) => {
+                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  openMainWalletEditor();
+                }
+              }}
+              role="button"
               style={{ background: gradientForColor(settings.mainWalletColor), border: 'none' }}
-              type="button"
+              tabIndex={0}
             >
               <div className={styles.walletCardInner}>
                 <div className={styles.walletTopRow}>
@@ -148,6 +161,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
                 <div className={styles.walletBalanceRow}>
                   <p className={styles.walletBalanceLabel}>Available Balance</p>
                   <button
+                    aria-label={`${hiddenBalances.has('main') ? 'Show' : 'Hide'} ${settings.mainWalletName} balance`}
                     className={styles.eyeToggle}
                     onClick={(e) => { e.stopPropagation(); toggleBalance('main'); }}
                     type="button"
@@ -167,16 +181,23 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
                   </div>
                 </div>
               </div>
-            </button>
+            </div>
           ) : null}
 
           {visibleWallets.map((wallet) => (
-            <button
+            <div
               className={`${styles.walletCard} app-card`}
               key={wallet.id}
               onClick={() => setSelectedWalletId(wallet.id ?? null)}
+              onKeyDown={(event) => {
+                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  setSelectedWalletId(wallet.id ?? null);
+                }
+              }}
+              role="button"
               style={{ background: gradientForColor(wallet.colorValue), border: 'none' }}
-              type="button"
+              tabIndex={0}
             >
               <div className={styles.walletCardInner}>
                 <div className={styles.walletTopRow}>
@@ -191,6 +212,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
                 <div className={styles.walletBalanceRow}>
                   <p className={styles.walletBalanceLabel}>Available Balance</p>
                   <button
+                    aria-label={`${hiddenBalances.has(`wallet-${wallet.id}`) ? 'Show' : 'Hide'} ${wallet.name} balance`}
                     className={styles.eyeToggle}
                     onClick={(e) => { e.stopPropagation(); toggleBalance(`wallet-${wallet.id}`); }}
                     type="button"
@@ -208,7 +230,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
                   </div>
                 </div>
               </div>
-            </button>
+            </div>
           ))}
 
           <Link className={`app-card ${styles.addTile}`} to="/wallets/new">
@@ -227,9 +249,43 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
           </Link>
         </div>
 
+        <MonthlySummary currencySymbol={currencySymbol} value={monthlySummary} />
+
+        <SectionList
+          action={<Link className={styles.sectionLink} to="/app/transactions">View all</Link>}
+          headerText="Recent activity"
+        >
+          {recentTransactions.length ? (
+            recentTransactions.map((transaction) => (
+              <div className="inset-item" data-testid="recent-transaction" key={transaction.id}>
+                <TransactionTypeIcon
+                  dimension="2.35rem"
+                  size={17}
+                  type={transaction.type}
+                  variant="subtle"
+                />
+                <span className="inset-item-content">
+                  <span className="inset-title">{transaction.description}</span>
+                  <span className="inset-subtitle">
+                    {transaction.category} · {formatShortDate(transaction.date)}
+                  </span>
+                </span>
+                <strong className={styles.sectionValue}>
+                  {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amount, currencySymbol)}
+                </strong>
+              </div>
+            ))
+          ) : (
+            <div className="empty-state">
+              <h3>No transactions yet</h3>
+              <p>Use Add to record your first transaction.</p>
+            </div>
+          )}
+        </SectionList>
+
         <SectionList
           footerText="A new money-saving tip appears every day."
-          headerText="Money Saving Tip"
+          headerText="Money-saving tip"
         >
           <div className={`inset-item ${styles.tipItem}`}>
             <span className={`icon-chip ${styles.tipIcon}`}>
@@ -238,7 +294,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
             <div className={styles.tipCopy}>
               <div className={styles.tipHeader}>
                 <span className="inset-title">{dailyTip.title}</span>
-                <span className={`tag ${styles.tipTag}`}>Tip of the Day</span>
+                <span className={`tag ${styles.tipTag}`}>Today</span>
               </div>
               <p className={styles.tipDescription}>{dailyTip.description}</p>
             </div>
@@ -247,14 +303,11 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
 
         <Suspense
           fallback={(
-            <SectionList
-              footerText="Preparing your latest analytics snapshot..."
-              headerText="Insights & Analytics"
-            >
+            <SectionList headerText="Insights">
               <div className="inset-item">
                 <span className="inset-item-content">
-                  <span className="inset-title">Loading insights...</span>
-                  <span className="inset-subtitle">Crunching your offline transactions and budgets.</span>
+                  <span className="inset-title">Loading insight...</span>
+                  <span className="inset-subtitle">Reviewing your recent local activity.</span>
                 </span>
               </div>
             </SectionList>
@@ -267,37 +320,6 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
             tipTitle={dailyTip.title}
           />
         </Suspense>
-
-        <SectionList headerText="Recent Transactions">
-          {recentTransactions.length ? (
-            recentTransactions.map((transaction) => {
-              return (
-                <div className="inset-item" key={transaction.id}>
-                  <TransactionTypeIcon
-                    dimension="2.35rem"
-                    size={17}
-                    type={transaction.type}
-                    variant="subtle"
-                  />
-                  <span className="inset-item-content">
-                    <span className="inset-title">{transaction.description}</span>
-                    <span className="inset-subtitle">
-                      {transaction.category} • {formatShortDate(transaction.date)}
-                    </span>
-                  </span>
-                  <strong className={styles.sectionValue}>
-                    {formatMoney(transaction.amount, currencySymbol)}
-                  </strong>
-                </div>
-              );
-            })
-          ) : (
-            <div className="empty-state">
-              <h3>No transactions yet</h3>
-              <p>Start by adding your first transaction.</p>
-            </div>
-          )}
-        </SectionList>
       </div>
 
       <Modal

@@ -1,5 +1,4 @@
 import { startTransition, useEffect, useMemo, useState } from 'react';
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { MdInsights } from 'react-icons/md';
 import { SectionList } from './SectionList';
 import { useAuth } from '../../hooks/useAuth';
@@ -38,19 +37,6 @@ function mapTipCategory(tipTitle: string, tipDescription: string): string | null
   }
 
   return null;
-}
-
-function toPercent(value: number): number {
-  return Number.isFinite(value) ? Math.max(0, Math.min(value, 999)) : 0;
-}
-
-function formatTooltipCurrency(
-  value: string | number | ReadonlyArray<string | number> | undefined,
-  currencySymbol: string,
-): string {
-  const rawValue = Array.isArray(value) ? value[0] : value;
-  const numericValue = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0);
-  return formatMoney(Number.isFinite(numericValue) ? numericValue : 0, currencySymbol);
 }
 
 export function AnalyticsOverview({
@@ -101,17 +87,6 @@ export function AnalyticsOverview({
     };
   }, [budgets.budgets, transactions.transactions, user?.id]);
 
-  const chartData = useMemo(() => {
-    if (!summary) {
-      return [];
-    }
-
-    return summary.weeklySpend.map((point) => ({
-      day: new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(point.date),
-      total: point.total,
-    }));
-  }, [summary]);
-
   const tipFocus = useMemo(() => {
     if (!summary) {
       return null;
@@ -140,75 +115,41 @@ export function AnalyticsOverview({
     };
   }, [summary, tipDescription, tipTitle]);
 
-  const monthlyPercent = toPercent(summary?.monthlyBudgetPercentage ?? 0);
-  const isOverBudget = monthlyPercent > 100;
-
   return (
     <SectionList
-      footerText="Insights are generated from your local offline transactions and budgets."
-      headerText="Insights & Analytics"
+      footerText="Open the full report for trends, comparisons, and category budgets."
+      headerText="Insights"
     >
       <div className={styles.overviewBody}>
         <div className={styles.overviewCard}>
           <div className={styles.topRow}>
-            <div>
-              <p className={styles.topLabel}>Monthly spending</p>
-              <h3 className={styles.primaryValue}>
-                {isLoading || !summary ? 'Loading...' : formatMoney(summary.monthlyTotal, currencySymbol)}
-              </h3>
-            </div>
             <span className="icon-chip accent-chip" aria-hidden="true">
               <MdInsights size={22} />
             </span>
-          </div>
-
-          {summary && summary.monthlyBudgetLimit > 0 ? (
-            <div className={styles.progressWrap}>
-              <div className={styles.progressMeta}>
-                <span>Budget usage</span>
-                <span>{Math.round(monthlyPercent)}%</span>
-              </div>
-              <div className={styles.progressTrack}>
-                <div
-                  className={`${styles.progressFill} ${isOverBudget ? styles.progressFillOver : ''}`}
-                  style={{ width: `${Math.min(monthlyPercent, 100)}%` }}
-                />
-              </div>
-              <div className={styles.progressMeta}>
-                <span>{formatMoney(summary?.monthlyTotal ?? 0, currencySymbol)}</span>
-                <span>{formatMoney(summary?.monthlyBudgetLimit ?? 0, currencySymbol)}</span>
-              </div>
+            <div className={styles.insightCopy}>
+              <p className={styles.topLabel}>Top spending category</p>
+              <h3 className={styles.primaryValue}>
+                {isLoading ? 'Loading…' : (summary?.topCategories[0]?.category ?? 'No spending yet')}
+              </h3>
+              {summary?.topCategories[0] ? (
+                <p className={styles.insightAmount}>
+                  {formatMoney(summary.topCategories[0].amount, currencySymbol)} this month
+                </p>
+              ) : null}
             </div>
-          ) : null}
-
-          <div className={styles.chartWrap}>
-            <ResponsiveContainer height="100%" width="100%">
-              <BarChart data={chartData}>
-                <XAxis axisLine={false} dataKey="day" tickLine={false} tick={{ fontSize: 11 }} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(37, 99, 235, 0.07)' }}
-                  formatter={(value) => formatTooltipCurrency(value, currencySymbol)}
-                  labelFormatter={(label) => `${label} spending`}
-                />
-                <Bar dataKey="total" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
           </div>
 
           {tipFocus ? (
             <p className={styles.focusNote}>
-              <span className={styles.focusStrong}>Smart tip match:</span>{' '}
-              {tipFocus.source === 'tip' ? 'Your current tip maps to ' : 'Top category this month is '}
+              {tipFocus.source === 'tip' ? 'Today’s tip can help with ' : 'Your leading category is '}
               <span className={styles.focusStrong}>{tipFocus.category}</span>
-              {' at '}
-              <span className={styles.focusStrong}>{formatMoney(tipFocus.amount, currencySymbol)}</span>
-              .
+              {' spending.'}
             </p>
           ) : null}
 
           <div className={styles.cardActions}>
             <button className={`primary-button ${styles.fullReportBtn}`} onClick={onSeeFullReport} type="button">
-              See Full Report
+              See full report
             </button>
           </div>
         </div>
