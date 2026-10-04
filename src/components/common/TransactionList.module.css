@@ -1,0 +1,142 @@
+.groupedList {
+  display: grid;
+  gap: 1rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--color-surface-soft);
+}
+
+.rowCopy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.rowTitle {
+  overflow: hidden;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+.income {
+  color: var(--color-income);
+}
+
+.expense {
+  color: var(--color-expense);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.detailLayout {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.detailHero {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.detailHero h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.detailAmount {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.35rem;
+}
+
+.detailGrid {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.detailGrid > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detailGrid > div:last-child {
+  border-bottom: 0;
+}
+
+.detailGrid dt {
+  color: var(--color-text-secondary);
+}
+
+.detailGrid dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.detailActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.detailActions > * {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: var(--min-touch-target);
+}
+
+@media (max-width: 380px) {
+  .amount {
+    font-size: 0.86rem;
+  }
+
+  .detailActions {
+    grid-template-columns: 1fr;
+  }
+}
