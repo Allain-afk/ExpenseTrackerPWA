@@ -1,161 +1,236 @@
 .page {
-  gap: 1rem;
-}
-
-.selectorCard,
-.formCard,
-.summaryCard,
-.cutoffCard {
-  padding: 1.25rem;
-}
-
-.selectorCard {
-  display: grid;
-  gap: 1rem;
-  background: var(--color-surface-elevated);
-}
-
-.selectorHeader,
-.sectionHeading,
-.formHeader,
-.cutoffHeader {
+  width: 100%;
+  max-width: 50rem;
+  margin-inline: auto;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.1rem;
 }
 
-.selectorHeader p,
-.sectionHeading p {
-  margin-bottom: 0.35rem;
+.page > header {
+  align-items: flex-start;
+  margin-bottom: 0.15rem;
+}
+
+.headerAction,
+.addPeriodButton,
+.allocationForm button,
+.emptyState button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.planToolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.25rem;
+  background: var(--color-surface-translucent);
+  backdrop-filter: blur(18px);
+}
+
+.planPicker {
+  min-width: 0;
 }
 
 .selectorLabel {
   display: block;
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-}
-
-.planCount,
-.sectionHint {
+  margin-bottom: 0.4rem;
   color: var(--color-text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
-.planCount {
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--color-primary-border);
+.selectWrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.selectWrap select {
+  min-width: 0;
+  font-weight: 700;
+}
+
+.planCount,
+.periodCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   color: var(--color-primary);
   background: var(--color-primary-soft);
+  font-size: 0.74rem;
+  font-weight: 800;
   white-space: nowrap;
 }
 
-.planActions,
-.inline-actions {
+.planCount {
+  padding: 0.4rem 0.65rem;
+}
+
+.planActions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.45rem;
 }
 
-.formHeader h2,
-.summaryCard h2,
-.cutoffHeader h2,
-.formCard h2,
-.sectionHeading h2 {
-  margin: 0;
-  letter-spacing: -0.045em;
-}
-
-.formHeader h2,
-.formCard h2,
-.sectionHeading h2 {
-  font-size: 1.25rem;
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.8rem;
-  margin-top: 1rem;
-}
-
-.formCard {
-  display: grid;
-  gap: 1rem;
+.iconButton {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.9rem;
+  display: inline-grid;
+  place-items: center;
   background: var(--color-surface);
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-fast) var(--ease-out), color var(--motion-fast) ease, border-color var(--motion-fast) ease, background var(--motion-fast) ease;
 }
 
-.disclaimer {
-  margin: 0;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--color-primary-border);
-  border-radius: 1rem;
+.iconButton:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary-border);
   background: var(--color-primary-soft);
-  color: var(--color-text-secondary);
-  font-size: 0.84rem;
+  transform: translateY(-1px);
+}
+
+.dangerIconButton:hover {
+  color: var(--color-expense);
+  border-color: rgba(244, 63, 94, 0.32);
+  background: rgba(244, 63, 94, 0.08);
 }
 
 .summaryCard {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.85rem 1rem;
-  align-items: start;
   overflow: hidden;
-  border: 0;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(96, 165, 250, 0.42), transparent 40%),
-    linear-gradient(135deg, #1e3a8a 0%, #2563eb 58%, #0f766e 130%);
-  color: white;
-  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.22);
+  padding: 1.35rem;
+  background: linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface) 48%, var(--color-primary-soft) 160%);
 }
 
-.summaryCard .eyebrow,
-.summaryCard .muted {
-  color: rgba(255, 255, 255, 0.72);
+.summaryCard::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.3rem;
+  background: linear-gradient(180deg, var(--button-primary-start), var(--button-primary-end));
+}
+
+.summaryHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.summaryIcon,
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .summaryIcon {
-  width: 2.9rem;
-  height: 2.9rem;
-  border-radius: 1rem;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.16);
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 0.9rem;
 }
 
 .summaryCopy {
   min-width: 0;
 }
 
-.summaryCard h2 {
-  margin-top: 0.18rem;
-  font-size: 1.4rem;
+.summaryCopy h2,
+.summaryCopy p,
+.sectionHeading h2,
+.sectionHeading p,
+.cutoffHeader h3,
+.cutoffHeader p,
+.emptyState h2,
+.emptyState p {
+  margin: 0;
+}
+
+.summaryCopy h2 {
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
   overflow-wrap: anywhere;
 }
 
-.summaryCard .muted {
-  margin: 0.25rem 0 0;
-  font-size: 0.84rem;
+.summaryCopy p {
+  margin-top: 0.15rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.remainingBlock {
+  display: grid;
+  gap: 0.1rem;
+  margin: 1.4rem 0 1rem;
+}
+
+.remainingBlock span {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.remainingBlock strong {
+  color: var(--color-text);
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.07em;
+  overflow-wrap: anywhere;
+}
+
+.remainingBlock strong.over {
+  color: var(--color-expense);
+}
+
+.progressCopy {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.45rem;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.progressTrack {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--button-primary-start), var(--button-primary-end));
+  transition: width var(--motion-base) var(--ease-out);
 }
 
 .metrics {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.55rem;
-  margin-top: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 1rem;
 }
 
 .metrics div {
   min-width: 0;
-  padding: 0.8rem 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 0.95rem;
-  background: rgba(15, 23, 42, 0.16);
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-surface-translucent);
 }
 
 .metrics span,
@@ -164,85 +239,125 @@
 }
 
 .metrics span {
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+  font-size: 0.74rem;
 }
 
 .metrics strong {
-  margin-top: 0.3rem;
-  font-size: 0.98rem;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
 
-.over {
-  color: #fecaca;
+.periodSection {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
 }
 
-.progressTrack {
-  grid-column: 1 / -1;
-  height: 0.4rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-inline: 0.2rem;
 }
 
-.progressTrack span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: #fff;
-  transition: width var(--motion-base) var(--ease-out);
+.sectionHeading h2 {
+  font-size: 1.25rem;
+  letter-spacing: -0.04em;
 }
 
-.sectionHint {
-  max-width: 11rem;
-  text-align: right;
+.sectionHeading p {
+  margin-top: 0.2rem;
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+}
+
+.periodCount {
+  width: 2rem;
+  height: 2rem;
+}
+
+.cutoffForm {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr auto;
+  align-items: end;
+  gap: 0.65rem;
+  padding: 1rem;
+  box-shadow: none;
+}
+
+.cutoffForm label {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cutoffForm label > span {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.cutoffCard {
+  padding: 1.15rem;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.055);
 }
 
 .cutoffHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
+  gap: 0.8rem;
 }
 
-.cutoffHeader > strong {
-  margin-left: auto;
+.cutoffHeader h3 {
   font-size: 1.05rem;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
 }
 
-.iconButton {
-  flex: 0 0 auto;
-  width: 2.7rem;
-  height: 2.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.85rem;
-  display: inline-grid;
-  place-items: center;
-  background: var(--color-surface);
+.cutoffHeader p,
+.cutoffTotal span {
+  margin-top: 0.15rem;
   color: var(--color-text-secondary);
-  transition: transform var(--motion-fast) var(--ease-out), color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+  font-size: 0.76rem;
 }
 
-.iconButton:hover {
-  color: var(--color-expense);
-  border-color: rgba(244, 63, 94, 0.35);
-  transform: translateY(-1px);
+.cutoffTotal {
+  display: grid;
+  justify-items: end;
+}
+
+.cutoffTotal strong {
+  font-size: 0.96rem;
 }
 
 .allocationList {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.4rem;
   margin: 1rem 0;
+}
+
+.emptyAllocations {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 0.9rem;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-soft);
+  font-size: 0.84rem;
+  text-align: center;
 }
 
 .allocationRow {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.85rem;
-  border: 1px solid var(--color-border);
-  border-radius: 1rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 0.9rem;
   background: var(--color-surface-soft);
 }
 
@@ -251,100 +366,216 @@
   display: block;
 }
 
-.allocationRow strong {
+.allocationRow > div {
+  min-width: 0;
+}
+
+.allocationRow > div strong {
   overflow-wrap: anywhere;
 }
 
 .allocationRow span {
-  margin-top: 0.2rem;
+  margin-top: 0.12rem;
   color: var(--color-text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+}
+
+.rowDeleteButton {
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 0;
+  background: transparent;
 }
 
 .allocationForm {
   display: grid;
-  grid-template-columns: 1.3fr 0.8fr 1fr auto;
-  gap: 0.6rem;
-  padding-top: 0.25rem;
+  grid-template-columns: 1.35fr 0.75fr 1fr auto;
+  gap: 0.55rem;
+  padding-top: 0.9rem;
   border-top: 1px solid var(--color-border);
 }
 
 .emptyState {
+  min-height: 19rem;
   display: grid;
+  align-content: center;
   justify-items: center;
-  gap: 0.8rem;
-  padding: 3.5rem 1.5rem;
+  gap: 1.1rem;
+  padding: 2.5rem 1.5rem;
   text-align: center;
-  color: var(--color-text-secondary);
 }
 
-.emptyState h2,
-.emptyState p {
-  margin: 0;
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.35rem;
+  box-shadow: inset 0 0 0 1px var(--color-primary-border);
 }
 
 .emptyState h2 {
+  font-size: 1.4rem;
+  letter-spacing: -0.04em;
+}
+
+.emptyState p {
+  max-width: 28rem;
+  margin-top: 0.35rem;
+  color: var(--color-text-secondary);
+}
+
+.planForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.dateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.page :global(.field-input) {
+  width: 100%;
+  max-width: 100%;
+  min-height: 2.85rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  outline: none;
+  background: var(--color-surface);
   color: var(--color-text);
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
 }
 
-.emptyState svg {
-  width: 3.5rem;
-  height: 3.5rem;
-  padding: 0.75rem;
-  border-radius: 1.2rem;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
+.page :global(.field-input):focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
-.backLink {
-  align-self: center;
-  color: var(--color-primary);
-  font-weight: 700;
-  padding: 0.5rem;
+.page button:focus-visible,
+.page a:focus-visible,
+.page input:focus-visible,
+.page select:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
 }
 
-.selectorCard :is(select, input),
-.formCard :is(select, input),
-.allocationForm :is(select, input) {
-  min-height: 3rem;
+.page button:active {
+  transform: translateY(1px);
 }
 
 @media (max-width: 720px) {
   .page {
-    padding-inline: 0.8rem;
+    padding-inline: 0.9rem;
+    gap: 0.9rem;
   }
 
-  .selectorCard,
-  .formCard,
+  .page > header {
+    gap: 0.6rem;
+  }
+
+  .headerAction {
+    min-width: 2.9rem;
+    min-height: 2.9rem;
+    padding: 0.75rem;
+    border-radius: 0.9rem;
+  }
+
+  .headerAction span {
+    display: none;
+  }
+
+  .planToolbar {
+    padding: 0.85rem;
+  }
+
+  .planCount {
+    display: none;
+  }
+
+  .selectWrap {
+    display: block;
+  }
+
   .summaryCard,
   .cutoffCard {
     padding: 1rem;
     border-radius: 1.25rem;
   }
 
-  .formGrid,
+  .cutoffForm,
   .allocationForm {
     grid-template-columns: 1fr;
   }
 
+  .addPeriodButton,
+  .allocationForm button {
+    width: 100%;
+  }
+
+  .cutoffHeader {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cutoffTotal {
+    grid-column: 1 / 2;
+    grid-row: 2;
+    justify-items: start;
+  }
+
+  .cutoffHeader > button {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+
+  .allocationRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .allocationRow > button {
+    grid-column: 2;
+  }
+
+  .allocationRow > strong {
+    grid-column: 1;
+    grid-row: 2;
+    color: var(--color-primary);
+    font-size: 0.86rem;
+  }
+
+  .allocationRow > div {
+    grid-row: 1;
+  }
+
+  .rowDeleteButton {
+    grid-row: 1 / 3;
+  }
+
+  .dateGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .modalActions > * {
+    flex: 1;
+  }
+}
+
+@media (max-width: 390px) {
   .metrics {
-    gap: 0.4rem;
+    grid-template-columns: 1fr;
   }
 
-  .metrics div {
-    padding: 0.65rem 0.55rem;
-  }
-
-  .metrics strong {
-    font-size: 0.82rem;
-  }
-
-  .sectionHeading {
+  .progressCopy {
     align-items: flex-start;
-  }
-
-  .sectionHint {
-    font-size: 0.72rem;
+    flex-direction: column;
+    gap: 0.2rem;
   }
 }
 

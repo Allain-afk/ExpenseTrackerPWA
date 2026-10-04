@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { MdAdd, MdDeleteOutline, MdEdit, MdSavings } from 'react-icons/md';
-import { PageHeader } from '../components/common/PageHeader';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { Modal } from '../components/common/Modal';
+import { PageHeader } from '../components/common/PageHeader';
 import { useBudgeting } from '../hooks/useBudgeting';
 import { useSettings } from '../hooks/useSettings';
+import { formatDateForInput, formatMediumDate, parseInputDate } from '../lib/utils/date';
 import { formatMoney } from '../lib/utils/format';
-import { formatDateForInput, parseInputDate } from '../lib/utils/date';
 import { showErrorToast, showSuccessToast } from '../lib/utils/appToast';
 import type { BudgetAllocation, BudgetCutoff, BudgetPlan } from '../types/models';
 import styles from './BudgetingScreen.module.css';
@@ -41,6 +41,9 @@ export function BudgetingScreen() {
     ) ?? 0;
     return { estimated, allocated, remaining: estimated - allocated };
   }, [selectedPlan]);
+  const allocatedPercentage = totals.estimated > 0
+    ? Math.min(100, Math.round((totals.allocated / totals.estimated) * 100))
+    : 0;
 
   async function savePlan(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,9 +59,7 @@ export function BudgetingScreen() {
         await budgeting.addPlan(planDraft);
         showSuccessToast('Plan created', 'Your new planning guide is ready.');
       }
-      setIsPlanFormOpen(false);
-      setEditingPlanId(null);
-      setPlanDraft(emptyPlan());
+      closePlanForm();
     } catch (error) {
       showErrorToast('Plan save failed', error instanceof Error ? error.message : 'Unable to save this plan.');
     }
@@ -102,85 +103,139 @@ export function BudgetingScreen() {
     setIsPlanFormOpen(true);
   }
 
+  function startNewPlan() {
+    setPlanDraft(emptyPlan());
+    setEditingPlanId(null);
+    setIsPlanFormOpen(true);
+  }
+
+  function closePlanForm() {
+    setIsPlanFormOpen(false);
+    setEditingPlanId(null);
+    setPlanDraft(emptyPlan());
+  }
+
   return (
     <main className={`app-page ${styles.page}`}>
       <PageHeader
-        action={<button className="primary-button" onClick={() => { setPlanDraft(emptyPlan()); setEditingPlanId(null); setIsPlanFormOpen(true); }} type="button"><MdAdd size={18} /> New plan</button>}
+        action={budgeting.plans.length > 0 ? (
+          <button className={`primary-button ${styles.headerAction}`} onClick={startNewPlan} type="button">
+            <MdAdd size={18} />
+            <span>New plan</span>
+          </button>
+        ) : null}
         backTo="/app/settings"
-        subtitle="Plan upcoming allocations without changing your balances."
+        subtitle="Plan ahead without changing your wallet balances."
         title="Budgeting"
       />
 
       {budgeting.plans.length ? (
-        <section className={`app-card ${styles.selectorCard}`}>
-          <div className={styles.selectorHeader}>
-            <div>
-              <p className="eyebrow">Your plans</p>
-              <label className={styles.selectorLabel} htmlFor="budget-plan">Active budget plan</label>
+        <section aria-label="Plan controls" className={styles.planToolbar}>
+          <div className={styles.planPicker}>
+            <label className={styles.selectorLabel} htmlFor="budget-plan">Budget plan</label>
+            <div className={styles.selectWrap}>
+              <select className="field-input" id="budget-plan" onChange={(event) => budgeting.selectPlan(event.target.value)} value={budgeting.selectedPlanId ?? ''}>
+                {budgeting.plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.title}</option>)}
+              </select>
+              <span className={styles.planCount}>{budgeting.plans.length} saved</span>
             </div>
-            <span className={styles.planCount}>{budgeting.plans.length} saved</span>
           </div>
-          <select className="field-input" id="budget-plan" onChange={(event) => budgeting.selectPlan(event.target.value)} value={budgeting.selectedPlanId ?? ''}>
-            {budgeting.plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.title}</option>)}
-          </select>
           <div className={styles.planActions}>
-            {selectedPlan ? <button className="secondary-button" onClick={() => startEditPlan(selectedPlan)} type="button"><MdEdit size={17} /> Edit plan</button> : null}
-            {selectedPlan ? <button className="danger-button" onClick={() => setPlanToDelete(selectedPlan.id ?? null)} type="button"><MdDeleteOutline size={17} /> Delete</button> : null}
+            {selectedPlan ? <button aria-label="Edit active plan" className={styles.iconButton} onClick={() => startEditPlan(selectedPlan)} type="button"><MdEdit size={19} /></button> : null}
+            {selectedPlan ? <button aria-label="Delete active plan" className={`${styles.iconButton} ${styles.dangerIconButton}`} onClick={() => setPlanToDelete(selectedPlan.id ?? null)} type="button"><MdDeleteOutline size={20} /></button> : null}
           </div>
         </section>
-      ) : null}
-
-      {isPlanFormOpen ? (
-        <form className={`app-card ${styles.formCard}`} onSubmit={(event) => void savePlan(event)}>
-          <div className={styles.formHeader}><div><p className="eyebrow">Planning guide</p><h2>{editingPlanId ? 'Edit plan' : 'Create a saved plan'}</h2></div></div>
-          <div className={styles.formGrid}>
-            <label className="form-field"><span className="field-label">Plan name</span><input className="field-input" onChange={(event) => setPlanDraft({ ...planDraft, title: event.target.value })} placeholder="October 2026 Budget" value={planDraft.title} /></label>
-            <label className="form-field"><span className="field-label">Start date</span><input className="field-input" onChange={(event) => setPlanDraft({ ...planDraft, periodStart: parseInputDate(event.target.value) })} type="date" value={formatDateForInput(planDraft.periodStart)} /></label>
-            <label className="form-field"><span className="field-label">End date</span><input className="field-input" onChange={(event) => setPlanDraft({ ...planDraft, periodEnd: parseInputDate(event.target.value) })} type="date" value={formatDateForInput(planDraft.periodEnd)} /></label>
-          </div>
-          <p className={styles.disclaimer}>Planning entries only. They will not change wallet balances or transactions.</p>
-          <div className="inline-actions"><button className="secondary-button" onClick={() => setIsPlanFormOpen(false)} type="button">Cancel</button><button className="primary-button" type="submit">{editingPlanId ? 'Save plan' : 'Create plan'}</button></div>
-        </form>
       ) : null}
 
       {selectedPlan ? (
         <>
           <section className={`app-card ${styles.summaryCard}`}>
-            <div className={styles.summaryIcon}><MdSavings size={24} /></div>
-            <div className={styles.summaryCopy}><p className="eyebrow">Planning summary</p><h2>{selectedPlan.title}</h2><p className="muted">{formatDateForInput(selectedPlan.periodStart)} to {formatDateForInput(selectedPlan.periodEnd)}</p></div>
-            <div className={styles.metrics}><div><span>Estimated</span><strong>{formatMoney(totals.estimated, currencySymbol)}</strong></div><div><span>Allocated</span><strong>{formatMoney(totals.allocated, currencySymbol)}</strong></div><div><span>Remaining</span><strong className={totals.remaining < 0 ? styles.over : ''}>{formatMoney(totals.remaining, currencySymbol)}</strong></div></div>
-            <div className={styles.progressTrack} aria-label={`${totals.estimated > 0 ? Math.min(100, Math.round((totals.allocated / totals.estimated) * 100)) : 0}% of estimated budget allocated`} role="progressbar" aria-valuemax={100} aria-valuemin={0} aria-valuenow={totals.estimated > 0 ? Math.min(100, Math.round((totals.allocated / totals.estimated) * 100)) : 0}><span style={{ width: `${totals.estimated > 0 ? Math.min(100, Math.max(0, (totals.allocated / totals.estimated) * 100)) : 0}%` }} /></div>
+            <div className={styles.summaryHeading}>
+              <div className={styles.summaryIcon}><MdSavings size={22} /></div>
+              <div className={styles.summaryCopy}>
+                <h2>{selectedPlan.title}</h2>
+                <p>{formatMediumDate(selectedPlan.periodStart)} – {formatMediumDate(selectedPlan.periodEnd)}</p>
+              </div>
+            </div>
+            <div className={styles.remainingBlock}>
+              <span>Remaining to plan</span>
+              <strong className={totals.remaining < 0 ? styles.over : ''}>{formatMoney(totals.remaining, currencySymbol)}</strong>
+            </div>
+            <div className={styles.progressCopy}><span>{allocatedPercentage}% allocated</span><span>{formatMoney(totals.estimated, currencySymbol)} planned</span></div>
+            <div className={styles.progressTrack} aria-label={`${allocatedPercentage}% of estimated budget allocated`} role="progressbar" aria-valuemax={100} aria-valuemin={0} aria-valuenow={allocatedPercentage}><span style={{ width: `${allocatedPercentage}%` }} /></div>
+            <div className={styles.metrics}>
+              <div><span>Estimated income</span><strong>{formatMoney(totals.estimated, currencySymbol)}</strong></div>
+              <div><span>Allocated</span><strong>{formatMoney(totals.allocated, currencySymbol)}</strong></div>
+            </div>
           </section>
 
-          <section className={`app-card ${styles.formCard}`}>
-            <div className={styles.sectionHeading}><div><p className="eyebrow">Plan structure</p><h2>Add cut-off</h2></div><span className={styles.sectionHint}>Split your plan into pay periods</span></div>
-            <form className={styles.formGrid} onSubmit={(event) => void addCutoff(event)}>
-              <input aria-label="Cut-off label" className="field-input" onChange={(event) => setCutoffDraft({ ...cutoffDraft, label: event.target.value })} placeholder="1st Cut-Off" value={cutoffDraft.label} />
-              <input aria-label="Cut-off date" className="field-input" onChange={(event) => setCutoffDraft({ ...cutoffDraft, date: event.target.value })} type="date" value={cutoffDraft.date} />
-              <input aria-label="Estimated amount" className="field-input" min="0" onChange={(event) => setCutoffDraft({ ...cutoffDraft, amount: event.target.value })} placeholder="Estimated amount" type="number" value={cutoffDraft.amount} />
-              <button className="secondary-button" type="submit"><MdAdd size={18} /> Add cut-off</button>
+          <section className={styles.periodSection}>
+            <div className={styles.sectionHeading}>
+              <div><h2>Pay periods</h2><p>Split this plan around the dates you expect income.</p></div>
+              <span className={styles.periodCount}>{selectedPlan.cutoffs.length}</span>
+            </div>
+            <form className={`app-card ${styles.cutoffForm}`} onSubmit={(event) => void addCutoff(event)}>
+              <label><span>Period name</span><input className="field-input" onChange={(event) => setCutoffDraft({ ...cutoffDraft, label: event.target.value })} placeholder="First pay period" value={cutoffDraft.label} /></label>
+              <label><span>Pay date</span><input className="field-input" onChange={(event) => setCutoffDraft({ ...cutoffDraft, date: event.target.value })} type="date" value={cutoffDraft.date} /></label>
+              <label><span>Expected amount</span><input className="field-input" min="0" onChange={(event) => setCutoffDraft({ ...cutoffDraft, amount: event.target.value })} placeholder="0.00" step="0.01" type="number" value={cutoffDraft.amount} /></label>
+              <button className={`secondary-button ${styles.addPeriodButton}`} type="submit"><MdAdd size={18} /> Add period</button>
             </form>
           </section>
 
-          {selectedPlan.cutoffs.map((cutoff) => (
-            <section className={`app-card ${styles.cutoffCard}`} key={cutoff.id}>
-              <div className={styles.cutoffHeader}><div><p className="eyebrow">{cutoff.cutoffDate ? formatDateForInput(cutoff.cutoffDate) : 'Planning period'}</p><h2>{cutoff.label}</h2></div><strong>{formatMoney(cutoff.allocations.reduce((sum, item) => sum + item.amount, 0), currencySymbol)}</strong><button aria-label={`Delete ${cutoff.label}`} className={styles.iconButton} onClick={() => void budgeting.deleteCutoff(cutoff.id!)} type="button"><MdDeleteOutline size={20} /></button></div>
-              <div className={styles.allocationList}>{cutoff.allocations.map((allocation) => <div className={styles.allocationRow} key={allocation.id}><div><strong>{allocation.particulars}</strong><span>{[allocation.category, allocation.paymentMethod].filter(Boolean).join(' · ') || 'Uncategorized'}</span></div><strong>{formatMoney(allocation.amount, currencySymbol)}</strong><button aria-label={`Delete ${allocation.particulars}`} className={styles.iconButton} onClick={() => void budgeting.deleteAllocation(allocation.id!)} type="button"><MdDeleteOutline size={18} /></button></div>)}</div>
-              <form className={styles.allocationForm} onSubmit={(event) => void addAllocation(event)}>
-                <input aria-label="Particulars" className="field-input" onChange={(event) => setAllocationDraft({ ...allocationDraft, cutoffId: cutoff.id!, particulars: event.target.value })} placeholder="Particulars" value={allocationDraft.cutoffId === cutoff.id ? allocationDraft.particulars : ''} />
-                <input aria-label="Allocation amount" className="field-input" min="0" onChange={(event) => setAllocationDraft({ ...allocationDraft, cutoffId: cutoff.id!, amount: event.target.value })} placeholder="Amount" type="number" value={allocationDraft.cutoffId === cutoff.id ? allocationDraft.amount : ''} />
-                <input aria-label="Payment method" className="field-input" onChange={(event) => setAllocationDraft({ ...allocationDraft, cutoffId: cutoff.id!, paymentMethod: event.target.value })} placeholder="Cash / GCash / Card" value={allocationDraft.cutoffId === cutoff.id ? allocationDraft.paymentMethod : ''} />
-                <button className="secondary-button" type="submit"><MdAdd size={18} /> Add allocation</button>
-              </form>
-            </section>
-          ))}
+          {selectedPlan.cutoffs.map((cutoff) => {
+            const cutoffAllocated = cutoff.allocations.reduce((sum, item) => sum + item.amount, 0);
+            return (
+              <section className={`app-card ${styles.cutoffCard}`} key={cutoff.id}>
+                <div className={styles.cutoffHeader}>
+                  <div><h3>{cutoff.label}</h3><p>{cutoff.cutoffDate ? formatMediumDate(cutoff.cutoffDate) : 'Date not set'}</p></div>
+                  <div className={styles.cutoffTotal}><strong>{formatMoney(cutoffAllocated, currencySymbol)}</strong><span>of {formatMoney(cutoff.estimatedAmount, currencySymbol)}</span></div>
+                  <button aria-label={`Delete ${cutoff.label}`} className={`${styles.iconButton} ${styles.dangerIconButton}`} onClick={() => void budgeting.deleteCutoff(cutoff.id!)} type="button"><MdDeleteOutline size={20} /></button>
+                </div>
+                <div className={styles.allocationList}>
+                  {cutoff.allocations.length === 0 ? <p className={styles.emptyAllocations}>No allocations in this period yet.</p> : null}
+                  {cutoff.allocations.map((allocation) => (
+                    <div className={styles.allocationRow} key={allocation.id}>
+                      <div><strong>{allocation.particulars}</strong><span>{[allocation.category, allocation.paymentMethod].filter(Boolean).join(' · ') || 'Uncategorized'}</span></div>
+                      <strong>{formatMoney(allocation.amount, currencySymbol)}</strong>
+                      <button aria-label={`Delete ${allocation.particulars}`} className={`${styles.iconButton} ${styles.rowDeleteButton}`} onClick={() => void budgeting.deleteAllocation(allocation.id!)} type="button"><MdDeleteOutline size={18} /></button>
+                    </div>
+                  ))}
+                </div>
+                <form className={styles.allocationForm} onSubmit={(event) => void addAllocation(event)}>
+                  <input aria-label="Particulars" className="field-input" onChange={(event) => setAllocationDraft({ ...allocationDraft, cutoffId: cutoff.id!, particulars: event.target.value })} placeholder="What is this for?" value={allocationDraft.cutoffId === cutoff.id ? allocationDraft.particulars : ''} />
+                  <input aria-label="Allocation amount" className="field-input" min="0" onChange={(event) => setAllocationDraft({ ...allocationDraft, cutoffId: cutoff.id!, amount: event.target.value })} placeholder="Amount" step="0.01" type="number" value={allocationDraft.cutoffId === cutoff.id ? allocationDraft.amount : ''} />
+                  <input aria-label="Payment method" className="field-input" onChange={(event) => setAllocationDraft({ ...allocationDraft, cutoffId: cutoff.id!, paymentMethod: event.target.value })} placeholder="Payment method" value={allocationDraft.cutoffId === cutoff.id ? allocationDraft.paymentMethod : ''} />
+                  <button className="secondary-button" type="submit"><MdAdd size={18} /> Add allocation</button>
+                </form>
+              </section>
+            );
+          })}
         </>
       ) : (
-        <section className={`app-card empty-state ${styles.emptyState}`}><MdSavings size={38} /><h2>No budget plan yet</h2><p>Create a saved planning guide for upcoming income and allocations.</p><button className="primary-button" onClick={() => setIsPlanFormOpen(true)} type="button"><MdAdd size={18} /> Create budget plan</button></section>
+        <section className={`app-card ${styles.emptyState}`}>
+          <div className={styles.emptyIcon}><MdSavings size={28} /></div>
+          <div><h2>Give your money a plan</h2><p>Map upcoming income to expenses before anything leaves your wallet.</p></div>
+          <button className="primary-button" onClick={startNewPlan} type="button"><MdAdd size={18} /> Create budget plan</button>
+        </section>
       )}
 
-      <ConfirmDialog confirmLabel="Delete plan" description="Delete this saved plan and all of its cut-offs and allocations? This will not affect your balances or transactions." onClose={() => setPlanToDelete(null)} onConfirm={() => { if (planToDelete) void budgeting.deletePlan(planToDelete); setPlanToDelete(null); }} open={planToDelete !== null} title="Delete saved plan" tone="danger" />
-      <Link className={styles.backLink} to="/app/settings">Back to Settings</Link>
+      <Modal
+        description="Set a name and date range. Planning entries never change wallet balances."
+        onClose={closePlanForm}
+        open={isPlanFormOpen}
+        title={editingPlanId ? 'Edit budget plan' : 'Create budget plan'}
+        variant="sheet"
+      >
+        <form className={styles.planForm} onSubmit={(event) => void savePlan(event)}>
+          <label className="form-field"><span className="field-label">Plan name</span><input autoFocus className="field-input" onChange={(event) => setPlanDraft({ ...planDraft, title: event.target.value })} placeholder="October 2026 budget" value={planDraft.title} /></label>
+          <div className={styles.dateGrid}>
+            <label className="form-field"><span className="field-label">Start date</span><input className="field-input" onChange={(event) => setPlanDraft({ ...planDraft, periodStart: parseInputDate(event.target.value) })} type="date" value={formatDateForInput(planDraft.periodStart)} /></label>
+            <label className="form-field"><span className="field-label">End date</span><input className="field-input" onChange={(event) => setPlanDraft({ ...planDraft, periodEnd: parseInputDate(event.target.value) })} type="date" value={formatDateForInput(planDraft.periodEnd)} /></label>
+          </div>
+          <div className={styles.modalActions}><button className="secondary-button" onClick={closePlanForm} type="button">Cancel</button><button className="primary-button" type="submit">{editingPlanId ? 'Save changes' : 'Create plan'}</button></div>
+        </form>
+      </Modal>
+      <ConfirmDialog confirmLabel="Delete plan" description="Delete this saved plan and all of its pay periods and allocations? This will not affect your balances or transactions." onClose={() => setPlanToDelete(null)} onConfirm={() => { if (planToDelete) void budgeting.deletePlan(planToDelete); setPlanToDelete(null); }} open={planToDelete !== null} title="Delete saved plan" tone="danger" />
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useId, type ReactNode } from 'react';
 import { MdClose } from 'react-icons/md';
 
 interface ModalProps {
@@ -18,6 +18,8 @@ export function Modal({
   variant = 'center',
   children,
 }: ModalProps) {
+  const titleId = useId();
+
   useEffect(() => {
     if (!open) {
       return;
@@ -46,6 +48,7 @@ export function Modal({
 
   return (
     <div
+      aria-labelledby={title ? titleId : undefined}
       aria-modal="true"
       className="overlay-backdrop"
       onClick={onClose}
@@ -58,7 +61,7 @@ export function Modal({
         {(title || description) && (
           <div className="overlay-header">
             <div>
-              {title ? <h2>{title}</h2> : null}
+              {title ? <h2 id={titleId}>{title}</h2> : null}
               {description ? <p>{description}</p> : null}
             </div>
             <button
