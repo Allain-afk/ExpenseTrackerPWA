@@ -21,6 +21,43 @@
   gap: 1rem;
 }
 
+.searchPanel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.searchField {
+  min-height: var(--control-height, 3rem);
+  padding: 0 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control, 1rem);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.searchField:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.searchField input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.searchField input::placeholder {
+  color: var(--color-text-secondary);
+}
+
 .amountCell {
   display: flex;
   align-items: center;
