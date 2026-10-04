@@ -102,12 +102,10 @@ export function TransactionFormScreen() {
   const selectedWallet = selectedWalletId ? wallets.getWalletById(selectedWalletId) : undefined;
   const selectedGroup = selectedGroupId ? groups.getGroupById(selectedGroupId) : undefined;
   const submitLabel = isEditing
-    ? selectedType === 'income'
-      ? 'Update Income'
-      : 'Update Expense'
+    ? 'Save changes'
     : selectedType === 'income'
-      ? 'Add Income'
-      : 'Add Expense';
+      ? 'Add income'
+      : 'Add expense';
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,7 +121,11 @@ export function TransactionFormScreen() {
       return;
     }
 
-    if (!isEditing && wallets.wallets.length > 0 && selectedWalletId === null) {
+    if (
+      !isEditing
+      && wallets.wallets.length > 0
+      && (selectedWalletId === null || !wallets.getWalletById(selectedWalletId))
+    ) {
       showErrorToast('Wallet required', 'Please select a specific wallet.');
       return;
     }
@@ -180,52 +182,46 @@ export function TransactionFormScreen() {
               ? 'Update the amount, category, wallet, and date in one clean flow.'
               : 'Capture the amount, category, wallet, and date in one clean flow.'
           }
-          title={isEditing ? 'Edit Transaction' : 'Add Transaction'}
+          title={isEditing ? 'Edit transaction' : 'Add transaction'}
         />
 
         <form className={styles.layout} onSubmit={(event) => void handleSubmit(event)}>
-          <div className={styles.typeSwitch}>
-            <button
-              aria-pressed={selectedType === 'expense'}
-              className={`${styles.typeButton} ${
-                selectedType === 'expense' ? styles.typeButtonActiveExpense : ''
-              }`}
-              onClick={() => setSelectedType('expense')}
-              type="button"
-            >
-              <TransactionTypeIcon dimension="2.15rem" size={15} type="expense" />
-              <span className={styles.typeButtonCopy}>
-                <strong>Expense</strong>
-                <small>Money out</small>
-              </span>
-            </button>
-            <button
-              aria-pressed={selectedType === 'income'}
-              className={`${styles.typeButton} ${
-                selectedType === 'income' ? styles.typeButtonActiveIncome : ''
-              }`}
-              onClick={() => setSelectedType('income')}
-              type="button"
-            >
-              <TransactionTypeIcon dimension="2.15rem" size={15} type="income" />
-              <span className={styles.typeButtonCopy}>
-                <strong>Income</strong>
-                <small>Money in</small>
-              </span>
-            </button>
-          </div>
-
-          <section className={`app-card ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <p className="eyebrow">Details</p>
-              <h2>Core Details</h2>
-              <p className={styles.sectionDescription}>
-                Start with the amount, then add a clear description and category.
-              </p>
+          <section className={`app-card ${styles.formSurface}`}>
+            <div aria-label="Transaction type" className={styles.typeSwitch} role="group">
+              <button
+                aria-label="Expense transaction"
+                aria-pressed={selectedType === 'expense'}
+                className={`${styles.typeButton} ${
+                  selectedType === 'expense' ? styles.typeButtonActiveExpense : ''
+                }`}
+                onClick={() => setSelectedType('expense')}
+                type="button"
+              >
+                <TransactionTypeIcon dimension="2.15rem" size={15} type="expense" />
+                <span className={styles.typeButtonCopy}>
+                  <strong>Expense</strong>
+                  <small>Money out</small>
+                </span>
+              </button>
+              <button
+                aria-label="Income transaction"
+                aria-pressed={selectedType === 'income'}
+                className={`${styles.typeButton} ${
+                  selectedType === 'income' ? styles.typeButtonActiveIncome : ''
+                }`}
+                onClick={() => setSelectedType('income')}
+                type="button"
+              >
+                <TransactionTypeIcon dimension="2.15rem" size={15} type="income" />
+                <span className={styles.typeButtonCopy}>
+                  <strong>Income</strong>
+                  <small>Money in</small>
+                </span>
+              </button>
             </div>
 
-            <div className={styles.fieldGrid}>
-              <div className={`${styles.amountField} ${styles.wideRow}`}>
+            <div className={styles.fieldStack}>
+              <div className={styles.amountField}>
                 <label className="field-label" htmlFor="amount-input">
                   Amount ({settings.currencySymbol})
                 </label>
@@ -282,24 +278,12 @@ export function TransactionFormScreen() {
                   ))}
                 </select>
               </div>
-            </div>
-          </section>
 
-          <section className={`app-card ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <p className="eyebrow">Assignment</p>
-              <h2>Wallet &amp; Category</h2>
-              <p className={styles.sectionDescription}>
-                Choose where this transaction belongs and organize it if needed.
-              </p>
-            </div>
-
-            <div className={styles.assignmentGrid}>
               {!isEditing ? (
                 wallets.wallets.length ? (
                   <div className="form-field">
                     <label className="field-label" htmlFor="wallet-select">
-                      Wallet (Required)
+                      Wallet (required)
                     </label>
                     <select
                       className="select-input"
@@ -307,6 +291,7 @@ export function TransactionFormScreen() {
                       onChange={(event) => setSelectedWalletId(parseOptionalNumber(event.target.value))}
                       value={selectedWalletId ?? ''}
                     >
+                      <option value="">Select a wallet</option>
                       {wallets.wallets.map((wallet) => (
                         <option key={wallet.id} value={wallet.id}>
                           {wallet.name}
@@ -317,7 +302,7 @@ export function TransactionFormScreen() {
                   </div>
                 ) : (
                   <button
-                    className={`${styles.actionRow} ${styles.wideRow}`}
+                    className={styles.actionRow}
                     onClick={() => setIsWalletModalOpen(true)}
                     type="button"
                   >
@@ -333,7 +318,7 @@ export function TransactionFormScreen() {
                   </button>
                 )
               ) : selectedWallet ? (
-                <div className={`${styles.lockedWallet} ${styles.wideRow}`}>
+                <div className={styles.lockedWallet}>
                   <span className="icon-chip accent-chip">
                     <MdCreditCard size={22} />
                   </span>
@@ -351,7 +336,7 @@ export function TransactionFormScreen() {
               {groups.groups.length ? (
                 <div className="form-field">
                   <label className="field-label" htmlFor="group-select">
-                    Spending Category (Optional)
+                    Spending category (optional)
                   </label>
                   <select
                     className="select-input"
@@ -359,7 +344,7 @@ export function TransactionFormScreen() {
                     onChange={(event) => setSelectedGroupId(parseOptionalNumber(event.target.value))}
                     value={selectedGroupId ?? ''}
                   >
-                    <option value="">No Category</option>
+                    <option value="">No category</option>
                     {groups.groups.map((group) => (
                       <option key={group.id} value={group.id}>
                         {group.name}
@@ -375,7 +360,7 @@ export function TransactionFormScreen() {
               ) : null}
 
               <button
-                className={`${styles.actionRow} ${styles.wideRow}`}
+                className={styles.actionRow}
                 onClick={() => setIsGroupModalOpen(true)}
                 type="button"
               >
@@ -383,25 +368,14 @@ export function TransactionFormScreen() {
                   <MdFolder size={22} />
                 </span>
                 <span className="inset-item-content">
-                  <span className="inset-title">Create New Category</span>
+                  <span className="inset-title">Create a category</span>
                   <span className="inset-subtitle">
                     Create a category without leaving this form.
                   </span>
                 </span>
               </button>
-            </div>
-          </section>
 
-          <section className={`app-card ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <p className="eyebrow">Schedule</p>
-              <h2>Date</h2>
-              <p className={styles.sectionDescription}>
-                Choose when this transaction happened.
-              </p>
-            </div>
-
-            <div className={styles.datePanelInner}>
+              <div className={styles.datePanelInner}>
               <div className={styles.dateHeading}>
                 <span className={`icon-chip ${styles.dateIcon}`}>
                   <MdCalendarToday size={22} />
@@ -423,6 +397,7 @@ export function TransactionFormScreen() {
                   value={formatDateForInput(selectedDate)}
                 />
               </label>
+            </div>
             </div>
           </section>
 
