@@ -81,6 +81,141 @@
   gap: 0.45rem;
 }
 
+.planList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.planCard {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.055);
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out);
+}
+
+.planCard:hover {
+  border-color: var(--color-primary-border);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.planCardLink {
+  min-width: 0;
+  padding: 1.15rem;
+}
+
+.planCardTop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.planCardIcon {
+  width: 2.65rem;
+  height: 2.65rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.9rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.planCardCopy {
+  min-width: 0;
+}
+
+.planCardCopy h2,
+.planCardCopy p,
+.planCardMeta {
+  margin: 0;
+}
+
+.planCardCopy h2 {
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.planCardCopy p,
+.planCardMeta {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+}
+
+.planCardCopy p {
+  margin-top: 0.1rem;
+}
+
+.planArrow {
+  color: var(--color-text-secondary);
+  transition: color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out);
+}
+
+.planCardLink:hover .planArrow {
+  color: var(--color-primary);
+  transform: translateX(2px);
+}
+
+.planCardNumbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.planCardNumbers div {
+  min-width: 0;
+}
+
+.planCardNumbers span,
+.planCardNumbers strong {
+  display: block;
+}
+
+.planCardNumbers span {
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+}
+
+.planCardNumbers strong {
+  margin-top: 0.12rem;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.planCardProgress {
+  height: 0.35rem;
+  margin-top: 0.8rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+}
+
+.planCardProgress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.planCardMeta {
+  margin-top: 0.4rem;
+}
+
+.planCardActions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+}
+
 .iconButton {
   flex: 0 0 auto;
   width: 2.75rem;
@@ -263,6 +398,21 @@
   padding-inline: 0.2rem;
 }
 
+.sectionAction,
+.addAllocationButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.85rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 0.84rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .sectionHeading h2 {
   font-size: 1.25rem;
   letter-spacing: -0.04em;
@@ -281,11 +431,19 @@
 
 .cutoffForm {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr auto;
+  grid-template-columns: 1.2fr 1fr 1fr;
   align-items: end;
   gap: 0.65rem;
   padding: 1rem;
   box-shadow: none;
+}
+
+.formActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding-top: 0.2rem;
 }
 
 .cutoffForm label {
@@ -307,7 +465,7 @@
 
 .cutoffHeader {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.8rem;
 }
@@ -318,33 +476,72 @@
   overflow-wrap: anywhere;
 }
 
-.cutoffHeader p,
-.cutoffTotal span {
+.cutoffHeader p {
   margin-top: 0.15rem;
   color: var(--color-text-secondary);
   font-size: 0.76rem;
 }
 
-.cutoffTotal {
+.cutoffBudget {
   display: grid;
-  justify-items: end;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  margin-top: 1rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.95rem;
+  background: var(--color-primary-soft);
 }
 
-.cutoffTotal strong {
-  font-size: 0.96rem;
+.cutoffBudget div:not(.cutoffProgress) {
+  min-width: 0;
+}
+
+.cutoffBudget span,
+.cutoffBudget strong {
+  display: block;
+}
+
+.cutoffBudget span {
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+}
+
+.cutoffBudget strong {
+  margin-top: 0.12rem;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.cutoffProgress {
+  grid-column: 1 / -1;
+  height: 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+
+.cutoffProgress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
 }
 
 .allocationList {
+  overflow: hidden;
   display: grid;
-  gap: 0.4rem;
+  gap: 0;
   margin: 1rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-surface);
 }
 
 .emptyAllocations {
   margin: 0;
   padding: 1rem;
-  border: 1px dashed var(--color-border);
-  border-radius: 0.9rem;
+  border: 0;
+  border-radius: 0;
   color: var(--color-text-secondary);
   background: var(--color-surface-soft);
   font-size: 0.84rem;
@@ -356,9 +553,13 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.7rem 0.75rem;
-  border-radius: 0.9rem;
-  background: var(--color-surface-soft);
+  padding: 0.85rem 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+}
+
+.allocationRow:last-child {
+  border-bottom: 0;
 }
 
 .allocationRow strong,
@@ -380,19 +581,75 @@
   font-size: 0.74rem;
 }
 
+.allocationAmount {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .rowDeleteButton {
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 0;
+  border-radius: 0.7rem;
   background: transparent;
+  color: var(--color-text-secondary);
+  display: inline-grid;
+  place-items: center;
+  transition: color var(--motion-fast) ease, background var(--motion-fast) ease;
+}
+
+.rowDeleteButton:hover {
+  color: var(--color-expense);
+  background: rgba(244, 63, 94, 0.08);
 }
 
 .allocationForm {
   display: grid;
-  grid-template-columns: 1.35fr 0.75fr 1fr auto;
+  grid-template-columns: 1.35fr 0.75fr 1fr;
   gap: 0.55rem;
   padding-top: 0.9rem;
   border-top: 1px solid var(--color-border);
+}
+
+.addAllocationButton {
+  width: 100%;
+  border: 1px solid var(--color-primary-border);
+  background: transparent;
+}
+
+.noPeriods,
+.missingState {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 2rem 1.25rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.noPeriods p,
+.noPeriods span,
+.missingState p {
+  margin: 0;
+}
+
+.noPeriods p {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.noPeriods span {
+  font-size: 0.84rem;
+}
+
+.missingState {
+  gap: 1rem;
+}
+
+.missingState :global(.primary-button) {
+  display: inline-flex;
 }
 
 .emptyState {
@@ -515,47 +772,26 @@
     grid-template-columns: 1fr;
   }
 
-  .addPeriodButton,
-  .allocationForm button {
-    width: 100%;
+  .formActions {
+    justify-content: stretch;
   }
 
-  .cutoffHeader {
-    grid-template-columns: minmax(0, 1fr) auto;
+  .formActions > * {
+    flex: 1;
   }
 
-  .cutoffTotal {
-    grid-column: 1 / 2;
-    grid-row: 2;
-    justify-items: start;
+  .sectionHeading {
+    align-items: flex-start;
   }
 
-  .cutoffHeader > button {
-    grid-column: 2;
-    grid-row: 1 / 3;
+  .sectionAction {
+    flex: 0 0 auto;
   }
 
   .allocationRow {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .allocationRow > button {
-    grid-column: 2;
-  }
-
-  .allocationRow > strong {
-    grid-column: 1;
-    grid-row: 2;
-    color: var(--color-primary);
-    font-size: 0.86rem;
-  }
-
-  .allocationRow > div {
-    grid-row: 1;
-  }
-
-  .rowDeleteButton {
-    grid-row: 1 / 3;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.45rem;
+    padding-inline: 0.75rem;
   }
 
   .dateGrid {
@@ -576,6 +812,21 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 0.2rem;
+  }
+
+  .allocationRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .allocationAmount {
+    grid-column: 1;
+    grid-row: 2;
+    color: var(--color-primary);
+  }
+
+  .rowDeleteButton {
+    grid-column: 2;
+    grid-row: 1 / 3;
   }
 }
 

@@ -152,6 +152,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/budgeting/:planId"
+        element={
+          <BootstrapBoundary requireSetup>
+            <BudgetingScreen />
+          </BootstrapBoundary>
+        }
+      />
+      <Route
         path="/wallets/new"
         element={
           <BootstrapBoundary requireSetup>
