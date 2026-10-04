@@ -1,6 +1,6 @@
 import type { DatabaseClient } from './types';
 
-export const databaseVersion = 11;
+export const databaseVersion = 12;
 
 async function getUserVersion(client: DatabaseClient): Promise<number> {
   const [result] = await client.sql<{ user_version: number }>('PRAGMA user_version');
@@ -284,6 +284,62 @@ async function migrateToV11(client: DatabaseClient): Promise<void> {
   `);
 }
 
+async function migrateToV12(client: DatabaseClient): Promise<void> {
+  await client.sql(`
+    CREATE TABLE IF NOT EXISTS budget_plans (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      period_start TEXT NOT NULL,
+      period_end TEXT NOT NULL,
+      notes TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      uuid TEXT UNIQUE,
+      user_id TEXT,
+      is_synced INTEGER NOT NULL DEFAULT 0,
+      last_modified TEXT
+    )
+  `);
+
+  await client.sql(`
+    CREATE TABLE IF NOT EXISTS budget_cutoffs (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      cutoff_date TEXT,
+      estimated_amount REAL NOT NULL DEFAULT 0,
+      notes TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      uuid TEXT UNIQUE,
+      user_id TEXT,
+      is_synced INTEGER NOT NULL DEFAULT 0,
+      last_modified TEXT,
+      FOREIGN KEY (plan_id) REFERENCES budget_plans(id) ON DELETE CASCADE
+    )
+  `);
+
+  await client.sql(`
+    CREATE TABLE IF NOT EXISTS budget_allocations (
+      id TEXT PRIMARY KEY,
+      cutoff_id TEXT NOT NULL,
+      particulars TEXT NOT NULL,
+      amount REAL NOT NULL,
+      category TEXT,
+      payment_method TEXT,
+      notes TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      uuid TEXT UNIQUE,
+      user_id TEXT,
+      is_synced INTEGER NOT NULL DEFAULT 0,
+      last_modified TEXT,
+      FOREIGN KEY (cutoff_id) REFERENCES budget_cutoffs(id) ON DELETE CASCADE
+    )
+  `);
+
+  await client.sql('CREATE INDEX IF NOT EXISTS idx_budget_plans_user ON budget_plans(user_id, sort_order)');
+  await client.sql('CREATE INDEX IF NOT EXISTS idx_budget_cutoffs_plan ON budget_cutoffs(plan_id, sort_order)');
+  await client.sql('CREATE INDEX IF NOT EXISTS idx_budget_allocations_cutoff ON budget_allocations(cutoff_id, sort_order)');
+}
+
 const migrations = [
   migrateToV1,
   migrateToV2,
@@ -296,6 +352,7 @@ const migrations = [
   migrateToV9,
   migrateToV10,
   migrateToV11,
+  migrateToV12,
 ];
 
 export async function applyMigrations(client: DatabaseClient): Promise<void> {

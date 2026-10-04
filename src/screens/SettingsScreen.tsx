@@ -13,6 +13,7 @@ import {
   MdNotificationsActive,
   MdPalette,
   MdPersonOutline,
+  MdSavings,
   MdWallet,
 } from 'react-icons/md';
 import { availableCurrencies } from '../lib/constants/settings';
@@ -652,7 +653,7 @@ export function SettingsScreen() {
           </button>
         </SectionList>
 
-        <SectionList headerText="Cards & Wallets">
+        <SectionList headerText="Cards, Wallets & Budgeting">
           <Link className="inset-item" to="/wallets">
             <span className="icon-chip accent-chip">
               <MdCreditCard size={22} />
@@ -660,6 +661,15 @@ export function SettingsScreen() {
             <span className="inset-item-content">
               <span className="inset-title">Manage Cards</span>
               <span className="inset-subtitle">Add, edit, reorder, or remove wallets</span>
+            </span>
+          </Link>
+          <Link className="inset-item" to="/budgeting">
+            <span className="icon-chip" style={{ background: 'rgba(15,118,110,0.12)', color: '#0f766e' }}>
+              <MdSavings size={22} />
+            </span>
+            <span className="inset-item-content">
+              <span className="inset-title">Budgeting</span>
+              <span className="inset-subtitle">Plan allocations without changing your balances</span>
             </span>
           </Link>
         </SectionList>

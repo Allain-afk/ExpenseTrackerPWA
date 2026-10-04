@@ -12,6 +12,7 @@ import { TransactionsContext } from './TransactionsContext';
 import { WalletsContext } from './WalletsContext';
 import { ExpenseGroupsContext } from './ExpenseGroupsContext';
 import { BudgetsContext } from './BudgetsContext';
+import { BudgetingContext } from './BudgetingContext';
 
 const BOOTSTRAP_TIMEOUT_MS = 15000;
 
@@ -48,6 +49,7 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
   const walletsContext = useContext(WalletsContext);
   const expenseGroupsContext = useContext(ExpenseGroupsContext);
   const budgetsContext = useContext(BudgetsContext);
+  const budgetingContext = useContext(BudgetingContext);
   const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
 
   const [isBootstrapping, setIsBootstrapping] = useState(false);
@@ -75,6 +77,7 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
           force || !walletsContext?.isLoaded ? walletsContext?.loadWallets() : undefined,
           force || !expenseGroupsContext?.isLoaded ? expenseGroupsContext?.loadExpenseGroups() : undefined,
           force || !budgetsContext?.isLoaded ? budgetsContext?.loadBudgets() : undefined,
+          force || !budgetingContext?.isLoaded ? budgetingContext?.loadPlans() : undefined,
         ];
 
         await withTimeout(

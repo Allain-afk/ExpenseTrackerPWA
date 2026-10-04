@@ -46,6 +46,38 @@ export interface Budget extends SyncMetadata {
   limitAmount: number;
 }
 
+export interface BudgetAllocation extends SyncMetadata {
+  id?: string;
+  cutoffId: string;
+  particulars: string;
+  amount: number;
+  category?: string | null;
+  paymentMethod?: string | null;
+  notes?: string | null;
+  sortOrder: number;
+}
+
+export interface BudgetCutoff extends SyncMetadata {
+  id?: string;
+  planId: string;
+  label: string;
+  cutoffDate?: Date | null;
+  estimatedAmount: number;
+  notes?: string | null;
+  sortOrder: number;
+  allocations: BudgetAllocation[];
+}
+
+export interface BudgetPlan extends SyncMetadata {
+  id?: string;
+  title: string;
+  periodStart: Date;
+  periodEnd: Date;
+  notes?: string | null;
+  sortOrder: number;
+  cutoffs: BudgetCutoff[];
+}
+
 export interface AnalyticsCategoryTotal {
   category: string;
   amount: number;

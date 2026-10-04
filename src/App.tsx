@@ -8,6 +8,7 @@ import { SplashScreen } from './screens/SplashScreen';
 import { SetupScreen } from './screens/SetupScreen';
 import { GroupDetailScreen } from './screens/GroupDetailScreen';
 import { ManageWalletsScreen } from './screens/ManageWalletsScreen';
+import { BudgetingScreen } from './screens/BudgetingScreen';
 import { TransactionFormScreen } from './screens/TransactionFormScreen';
 import { GroupFormScreen } from './screens/GroupFormScreen';
 import { WalletFormScreen } from './screens/WalletFormScreen';
@@ -139,6 +140,14 @@ function AppRoutes() {
         element={
           <BootstrapBoundary requireSetup>
             <ManageWalletsScreen />
+          </BootstrapBoundary>
+        }
+      />
+      <Route
+        path="/budgeting"
+        element={
+          <BootstrapBoundary requireSetup>
+            <BudgetingScreen />
           </BootstrapBoundary>
         }
       />

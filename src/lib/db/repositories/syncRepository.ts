@@ -2,7 +2,14 @@ import { ensureDatabaseReady } from '../client';
 import type { DatabaseClient } from '../types';
 import { fromSqliteTimestamp, toIsoTimestamp, toSqliteTimestamp } from '../../utils/date';
 
-export type SyncTableName = 'transactions' | 'wallets' | 'expense_groups' | 'budgets';
+export type SyncTableName =
+  | 'transactions'
+  | 'wallets'
+  | 'expense_groups'
+  | 'budgets'
+  | 'budget_plans'
+  | 'budget_cutoffs'
+  | 'budget_allocations';
 
 export interface SyncWalletRow {
   id?: number;
@@ -57,11 +64,58 @@ export interface SyncBudgetRow {
   last_modified: string;
 }
 
+export interface SyncBudgetPlanRow {
+  id: string;
+  title: string;
+  period_start: string;
+  period_end: string;
+  notes: string | null;
+  sort_order: number;
+  uuid: string;
+  user_id: string | null;
+  is_synced: number;
+  last_modified: string;
+}
+
+export interface SyncBudgetCutoffRow {
+  id: string;
+  plan_id: string;
+  plan_uuid: string;
+  label: string;
+  cutoff_date: string | null;
+  estimated_amount: number;
+  notes: string | null;
+  sort_order: number;
+  uuid: string;
+  user_id: string | null;
+  is_synced: number;
+  last_modified: string;
+}
+
+export interface SyncBudgetAllocationRow {
+  id: string;
+  cutoff_id: string;
+  cutoff_uuid: string;
+  particulars: string;
+  amount: number;
+  category: string | null;
+  payment_method: string | null;
+  notes: string | null;
+  sort_order: number;
+  uuid: string;
+  user_id: string | null;
+  is_synced: number;
+  last_modified: string;
+}
+
 export interface SyncPendingData {
   wallets: SyncWalletRow[];
   expenseGroups: SyncExpenseGroupRow[];
   transactions: SyncTransactionRow[];
   budgets: SyncBudgetRow[];
+  budgetPlans: SyncBudgetPlanRow[];
+  budgetCutoffs: SyncBudgetCutoffRow[];
+  budgetAllocations: SyncBudgetAllocationRow[];
 }
 
 interface CountResultRow {
@@ -96,14 +150,26 @@ export function createSyncRepository(client: DatabaseClient) {
   return {
     async getAnonymousOwnershipCount(): Promise<number> {
       await ensureDatabaseReady();
-      const [transactionCount, walletCount, expenseGroupCount, budgetCount] = await Promise.all([
+      const [
+        transactionCount,
+        walletCount,
+        expenseGroupCount,
+        budgetCount,
+        planCount,
+        cutoffCount,
+        allocationCount,
+      ] = await Promise.all([
         countRowsWithNullUser(client, 'transactions'),
         countRowsWithNullUser(client, 'wallets'),
         countRowsWithNullUser(client, 'expense_groups'),
         countRowsWithNullUser(client, 'budgets'),
+        countRowsWithNullUser(client, 'budget_plans'),
+        countRowsWithNullUser(client, 'budget_cutoffs'),
+        countRowsWithNullUser(client, 'budget_allocations'),
       ]);
 
-      return transactionCount + walletCount + expenseGroupCount + budgetCount;
+      return transactionCount + walletCount + expenseGroupCount + budgetCount
+        + planCount + cutoffCount + allocationCount;
     },
 
     async adoptAnonymousRows(userId: string): Promise<void> {
@@ -149,11 +215,21 @@ export function createSyncRepository(client: DatabaseClient) {
         userId,
         timestamp,
       );
+
+      for (const tableName of ['budget_plans', 'budget_cutoffs', 'budget_allocations'] as const) {
+        await client.sql(
+          `UPDATE ${tableName}
+           SET user_id = ?, is_synced = 0, last_modified = ?
+           WHERE user_id IS NULL`,
+          userId,
+          timestamp,
+        );
+      }
     },
 
     async getPendingRowsForUser(userId: string): Promise<SyncPendingData> {
       await ensureDatabaseReady();
-      const [wallets, expenseGroups, transactions, budgets] = await Promise.all([
+      const [wallets, expenseGroups, transactions, budgets, budgetPlans, budgetCutoffs, budgetAllocations] = await Promise.all([
         client.sql<SyncWalletRow>(
           `SELECT *
            FROM wallets
@@ -186,6 +262,22 @@ export function createSyncRepository(client: DatabaseClient) {
            ORDER BY last_modified ASC, id ASC`,
           userId,
         ),
+        client.sql<SyncBudgetPlanRow>(
+          `SELECT *, COALESCE(uuid, id) AS uuid FROM budget_plans WHERE user_id = ? AND is_synced = 0 ORDER BY last_modified ASC, id ASC`,
+          userId,
+        ),
+        client.sql<SyncBudgetCutoffRow>(
+          `SELECT c.*, COALESCE(c.uuid, c.id) AS uuid, COALESCE(p.uuid, p.id) AS plan_uuid
+           FROM budget_cutoffs c JOIN budget_plans p ON p.id = c.plan_id
+           WHERE c.user_id = ? AND c.is_synced = 0 ORDER BY c.last_modified ASC, c.id ASC`,
+          userId,
+        ),
+        client.sql<SyncBudgetAllocationRow>(
+          `SELECT a.*, COALESCE(a.uuid, a.id) AS uuid, COALESCE(c.uuid, c.id) AS cutoff_uuid
+           FROM budget_allocations a JOIN budget_cutoffs c ON c.id = a.cutoff_id
+           WHERE a.user_id = ? AND a.is_synced = 0 ORDER BY a.last_modified ASC, a.id ASC`,
+          userId,
+        ),
       ]);
 
       return {
@@ -193,6 +285,9 @@ export function createSyncRepository(client: DatabaseClient) {
         expenseGroups,
         transactions,
         budgets,
+        budgetPlans,
+        budgetCutoffs,
+        budgetAllocations,
       };
     },
 
@@ -236,6 +331,31 @@ export function createSyncRepository(client: DatabaseClient) {
          FROM budgets
          WHERE user_id = ?
          ORDER BY last_modified ASC, id ASC`,
+        userId,
+      );
+    },
+
+    async getBudgetPlanRowsForUser(userId: string): Promise<SyncBudgetPlanRow[]> {
+      await ensureDatabaseReady();
+      return client.sql<SyncBudgetPlanRow>('SELECT *, COALESCE(uuid, id) AS uuid FROM budget_plans WHERE user_id = ? ORDER BY last_modified ASC, id ASC', userId);
+    },
+
+    async getBudgetCutoffRowsForUser(userId: string): Promise<SyncBudgetCutoffRow[]> {
+      await ensureDatabaseReady();
+      return client.sql<SyncBudgetCutoffRow>(
+        `SELECT c.*, COALESCE(c.uuid, c.id) AS uuid, COALESCE(p.uuid, p.id) AS plan_uuid
+         FROM budget_cutoffs c JOIN budget_plans p ON p.id = c.plan_id
+         WHERE c.user_id = ? ORDER BY c.last_modified ASC, c.id ASC`,
+        userId,
+      );
+    },
+
+    async getBudgetAllocationRowsForUser(userId: string): Promise<SyncBudgetAllocationRow[]> {
+      await ensureDatabaseReady();
+      return client.sql<SyncBudgetAllocationRow>(
+        `SELECT a.*, COALESCE(a.uuid, a.id) AS uuid, COALESCE(c.uuid, c.id) AS cutoff_uuid
+         FROM budget_allocations a JOIN budget_cutoffs c ON c.id = a.cutoff_id
+         WHERE a.user_id = ? ORDER BY a.last_modified ASC, a.id ASC`,
         userId,
       );
     },
@@ -447,6 +567,78 @@ export function createSyncRepository(client: DatabaseClient) {
         budgetId,
         row.category,
         row.limit_amount,
+        row.uuid,
+        row.user_id,
+        row.last_modified,
+      );
+    },
+
+    async upsertBudgetPlanFromRemote(row: SyncBudgetPlanRow): Promise<void> {
+      await ensureDatabaseReady();
+      await client.sql(
+        `INSERT INTO budget_plans
+          (id, title, period_start, period_end, notes, sort_order, uuid, user_id, is_synced, last_modified)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+         ON CONFLICT(uuid) DO UPDATE SET
+          title = excluded.title, period_start = excluded.period_start, period_end = excluded.period_end,
+          notes = excluded.notes, sort_order = excluded.sort_order, user_id = excluded.user_id,
+          is_synced = 1, last_modified = excluded.last_modified`,
+        row.id,
+        row.title,
+        normalizeToSqliteTimestamp(row.period_start),
+        normalizeToSqliteTimestamp(row.period_end),
+        row.notes,
+        row.sort_order,
+        row.uuid,
+        row.user_id,
+        row.last_modified,
+      );
+    },
+
+    async upsertBudgetCutoffFromRemote(row: SyncBudgetCutoffRow): Promise<void> {
+      await ensureDatabaseReady();
+      const [plan] = await client.sql<{ id: string }>('SELECT id FROM budget_plans WHERE uuid = ?', row.plan_uuid);
+      await client.sql(
+        `INSERT INTO budget_cutoffs
+          (id, plan_id, label, cutoff_date, estimated_amount, notes, sort_order, uuid, user_id, is_synced, last_modified)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+         ON CONFLICT(uuid) DO UPDATE SET
+          plan_id = excluded.plan_id, label = excluded.label, cutoff_date = excluded.cutoff_date,
+          estimated_amount = excluded.estimated_amount, notes = excluded.notes, sort_order = excluded.sort_order,
+          user_id = excluded.user_id, is_synced = 1, last_modified = excluded.last_modified`,
+        row.id,
+        plan?.id ?? row.plan_id,
+        row.label,
+        row.cutoff_date ? normalizeToSqliteTimestamp(row.cutoff_date) : null,
+        row.estimated_amount,
+        row.notes,
+        row.sort_order,
+        row.uuid,
+        row.user_id,
+        row.last_modified,
+      );
+    },
+
+    async upsertBudgetAllocationFromRemote(row: SyncBudgetAllocationRow): Promise<void> {
+      await ensureDatabaseReady();
+      const [cutoff] = await client.sql<{ id: string }>('SELECT id FROM budget_cutoffs WHERE uuid = ?', row.cutoff_uuid);
+      await client.sql(
+        `INSERT INTO budget_allocations
+          (id, cutoff_id, particulars, amount, category, payment_method, notes, sort_order, uuid, user_id, is_synced, last_modified)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+         ON CONFLICT(uuid) DO UPDATE SET
+          cutoff_id = excluded.cutoff_id, particulars = excluded.particulars, amount = excluded.amount,
+          category = excluded.category, payment_method = excluded.payment_method, notes = excluded.notes,
+          sort_order = excluded.sort_order, user_id = excluded.user_id, is_synced = 1,
+          last_modified = excluded.last_modified`,
+        row.id,
+        cutoff?.id ?? row.cutoff_id,
+        row.particulars,
+        row.amount,
+        row.category,
+        row.payment_method,
+        row.notes,
+        row.sort_order,
         row.uuid,
         row.user_id,
         row.last_modified,

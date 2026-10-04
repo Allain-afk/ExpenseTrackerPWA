@@ -4,6 +4,7 @@ import { TransactionsProvider, TransactionsContext } from './TransactionsContext
 import { WalletsProvider, WalletsContext } from './WalletsContext';
 import { ExpenseGroupsProvider } from './ExpenseGroupsContext';
 import { BudgetsProvider } from './BudgetsContext';
+import { BudgetingProvider } from './BudgetingContext';
 import { AppBootstrapProvider } from './AppBootstrapContext';
 import { AuthProvider } from './AuthContext';
 import { SyncProvider } from './SyncContext';
@@ -102,12 +103,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <WalletsProvider>
             <ExpenseGroupsProvider>
               <BudgetsProvider>
-                <AppBootstrapProvider>
-                  <SyncProvider>
-                    <NotificationCoordinator />
-                    {children}
-                  </SyncProvider>
-                </AppBootstrapProvider>
+                <BudgetingProvider>
+                  <AppBootstrapProvider>
+                    <SyncProvider>
+                      <NotificationCoordinator />
+                      {children}
+                    </SyncProvider>
+                  </AppBootstrapProvider>
+                </BudgetingProvider>
               </BudgetsProvider>
             </ExpenseGroupsProvider>
           </WalletsProvider>

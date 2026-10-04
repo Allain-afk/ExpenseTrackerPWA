@@ -11,6 +11,9 @@ import { databaseClient } from '../lib/db/client';
 import {
   createSyncRepository,
   type SyncBudgetRow,
+  type SyncBudgetPlanRow,
+  type SyncBudgetCutoffRow,
+  type SyncBudgetAllocationRow,
   type SyncExpenseGroupRow,
   type SyncPendingData,
   type SyncTableName,
@@ -31,6 +34,7 @@ import { useBudgets } from '../hooks/useBudgets';
 import { getSupabaseDisplayName } from '../lib/utils/supabaseUser';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
+import { useBudgeting } from '../hooks/useBudgeting';
 
 export type SyncStatus = 'idle' | 'offline' | 'syncing' | 'success' | 'error';
 
@@ -46,6 +50,7 @@ interface SyncRunSummary {
     expenseGroups: boolean;
     transactions: boolean;
     budgets: boolean;
+    budgeting: boolean;
   };
 }
 
@@ -160,6 +165,64 @@ function normalizeBudgetRemoteRow(row: Record<string, unknown>): SyncBudgetRow |
   };
 }
 
+function normalizeBudgetPlanRemoteRow(row: Record<string, unknown>): SyncBudgetPlanRow | null {
+  const uuid = String(row.uuid ?? row.id ?? '').trim();
+  if (!uuid) return null;
+  return {
+    id: String(row.id ?? uuid),
+    title: String(row.title ?? ''),
+    period_start: String(row.period_start ?? new Date().toISOString()),
+    period_end: String(row.period_end ?? new Date().toISOString()),
+    notes: row.notes ? String(row.notes) : null,
+    sort_order: Number(row.sort_order ?? 0),
+    uuid,
+    user_id: row.user_id ? String(row.user_id) : null,
+    is_synced: 1,
+    last_modified: String(row.last_modified ?? new Date().toISOString()),
+  };
+}
+
+function normalizeBudgetCutoffRemoteRow(row: Record<string, unknown>): SyncBudgetCutoffRow | null {
+  const uuid = String(row.uuid ?? row.id ?? '').trim();
+  const planUuid = String(row.plan_uuid ?? '').trim();
+  if (!uuid || !planUuid) return null;
+  return {
+    id: String(row.id ?? uuid),
+    plan_id: String(row.plan_id ?? ''),
+    plan_uuid: planUuid,
+    label: String(row.label ?? ''),
+    cutoff_date: row.cutoff_date ? String(row.cutoff_date) : null,
+    estimated_amount: Number(row.estimated_amount ?? 0),
+    notes: row.notes ? String(row.notes) : null,
+    sort_order: Number(row.sort_order ?? 0),
+    uuid,
+    user_id: row.user_id ? String(row.user_id) : null,
+    is_synced: 1,
+    last_modified: String(row.last_modified ?? new Date().toISOString()),
+  };
+}
+
+function normalizeBudgetAllocationRemoteRow(row: Record<string, unknown>): SyncBudgetAllocationRow | null {
+  const uuid = String(row.uuid ?? row.id ?? '').trim();
+  const cutoffUuid = String(row.cutoff_uuid ?? '').trim();
+  if (!uuid || !cutoffUuid) return null;
+  return {
+    id: String(row.id ?? uuid),
+    cutoff_id: String(row.cutoff_id ?? ''),
+    cutoff_uuid: cutoffUuid,
+    particulars: String(row.particulars ?? ''),
+    amount: Number(row.amount ?? 0),
+    category: row.category ? String(row.category) : null,
+    payment_method: row.payment_method ? String(row.payment_method) : null,
+    notes: row.notes ? String(row.notes) : null,
+    sort_order: Number(row.sort_order ?? 0),
+    uuid,
+    user_id: row.user_id ? String(row.user_id) : null,
+    is_synced: 1,
+    last_modified: String(row.last_modified ?? new Date().toISOString()),
+  };
+}
+
 function toWalletRemotePayload(row: SyncWalletRow) {
   return {
     uuid: row.uuid,
@@ -212,6 +275,18 @@ function toBudgetRemotePayload(row: SyncBudgetRow) {
   };
 }
 
+function toBudgetPlanRemotePayload(row: SyncBudgetPlanRow) {
+  return { id: row.id, uuid: row.uuid, user_id: row.user_id, title: row.title, period_start: row.period_start, period_end: row.period_end, notes: row.notes, sort_order: row.sort_order, last_modified: row.last_modified };
+}
+
+function toBudgetCutoffRemotePayload(row: SyncBudgetCutoffRow) {
+  return { id: row.id, uuid: row.uuid, user_id: row.user_id, plan_uuid: row.plan_uuid, label: row.label, cutoff_date: row.cutoff_date, estimated_amount: row.estimated_amount, notes: row.notes, sort_order: row.sort_order, last_modified: row.last_modified };
+}
+
+function toBudgetAllocationRemotePayload(row: SyncBudgetAllocationRow) {
+  return { id: row.id, uuid: row.uuid, user_id: row.user_id, cutoff_uuid: row.cutoff_uuid, particulars: row.particulars, amount: row.amount, category: row.category, payment_method: row.payment_method, notes: row.notes, sort_order: row.sort_order, last_modified: row.last_modified };
+}
+
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { user, isConfigured } = useAuth();
   const settings = useSettings();
@@ -219,6 +294,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const wallets = useWallets();
   const expenseGroups = useExpenseGroups();
   const budgets = useBudgets();
+  const budgeting = useBudgeting();
   const syncIntervalMs = 5 * 60 * 1000;
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [status, setStatus] = useState<SyncStatus>(() => (navigator.onLine ? 'idle' : 'offline'));
@@ -267,7 +343,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const syncTableRows = useCallback(async (
     userId: string,
     tableName: SyncTableName,
-    rows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow | SyncBudgetRow>,
+    rows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow | SyncBudgetRow | SyncBudgetPlanRow | SyncBudgetCutoffRow | SyncBudgetAllocationRow>,
   ): Promise<void> => {
     if (!supabase || !rows.length) {
       return;
@@ -296,7 +372,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const pushRows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow | SyncBudgetRow> = [];
+    const pushRows: Array<SyncWalletRow | SyncExpenseGroupRow | SyncTransactionRow | SyncBudgetRow | SyncBudgetPlanRow | SyncBudgetCutoffRow | SyncBudgetAllocationRow> = [];
     const pullRows: Array<Record<string, unknown>> = [];
 
     for (const row of rows) {
@@ -326,6 +402,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         if (tableName === 'budgets') {
           return toBudgetRemotePayload(row as SyncBudgetRow);
         }
+
+        if (tableName === 'budget_plans') return toBudgetPlanRemotePayload(row as SyncBudgetPlanRow);
+        if (tableName === 'budget_cutoffs') return toBudgetCutoffRemotePayload(row as SyncBudgetCutoffRow);
+        if (tableName === 'budget_allocations') return toBudgetAllocationRemotePayload(row as SyncBudgetAllocationRow);
 
         return toTransactionRemotePayload(row as SyncTransactionRow);
       });
@@ -379,6 +459,28 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (tableName === 'budget_plans') {
+      for (const row of pullRows) {
+        const normalized = normalizeBudgetPlanRemoteRow(row);
+        if (normalized) await syncRepository.upsertBudgetPlanFromRemote(normalized);
+      }
+      return;
+    }
+    if (tableName === 'budget_cutoffs') {
+      for (const row of pullRows) {
+        const normalized = normalizeBudgetCutoffRemoteRow(row);
+        if (normalized) await syncRepository.upsertBudgetCutoffFromRemote(normalized);
+      }
+      return;
+    }
+    if (tableName === 'budget_allocations') {
+      for (const row of pullRows) {
+        const normalized = normalizeBudgetAllocationRemoteRow(row);
+        if (normalized) await syncRepository.upsertBudgetAllocationFromRemote(normalized);
+      }
+      return;
+    }
+
     for (const row of pullRows) {
       const normalized = normalizeTransactionRemoteRow(row);
       if (normalized) {
@@ -410,43 +512,67 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const pendingCount = pending.wallets.length
       + pending.expenseGroups.length
       + pending.transactions.length
-      + pending.budgets.length;
+      + pending.budgets.length
+      + pending.budgetPlans.length
+      + pending.budgetCutoffs.length
+      + pending.budgetAllocations.length;
     const touchedTables = {
       wallets: pending.wallets.length > 0,
       expenseGroups: pending.expenseGroups.length > 0,
       transactions: pending.transactions.length > 0,
       budgets: pending.budgets.length > 0,
+      budgeting: pending.budgetPlans.length > 0
+        || pending.budgetCutoffs.length > 0
+        || pending.budgetAllocations.length > 0,
     };
 
     await syncTableRows(userId, 'wallets', pending.wallets);
     await syncTableRows(userId, 'expense_groups', pending.expenseGroups);
     await syncTableRows(userId, 'transactions', pending.transactions);
     await syncTableRows(userId, 'budgets', pending.budgets);
+    await syncTableRows(userId, 'budget_plans', pending.budgetPlans);
+    await syncTableRows(userId, 'budget_cutoffs', pending.budgetCutoffs);
+    await syncTableRows(userId, 'budget_allocations', pending.budgetAllocations);
 
     const [
       remoteWalletRows,
       remoteExpenseGroupRows,
       remoteTransactionRows,
       remoteBudgetRows,
+      remoteBudgetPlanRows,
+      remoteBudgetCutoffRows,
+      remoteBudgetAllocationRows,
       localWalletRows,
       localExpenseGroupRows,
       localTransactionRows,
       localBudgetRows,
+      localBudgetPlanRows,
+      localBudgetCutoffRows,
+      localBudgetAllocationRows,
     ] = await Promise.all([
       fetchAllRemoteRows(userId, 'wallets'),
       fetchAllRemoteRows(userId, 'expense_groups'),
       fetchAllRemoteRows(userId, 'transactions'),
       fetchAllRemoteRows(userId, 'budgets'),
+      fetchAllRemoteRows(userId, 'budget_plans'),
+      fetchAllRemoteRows(userId, 'budget_cutoffs'),
+      fetchAllRemoteRows(userId, 'budget_allocations'),
       syncRepository.getWalletRowsForUser(userId),
       syncRepository.getExpenseGroupRowsForUser(userId),
       syncRepository.getTransactionRowsForUser(userId),
       syncRepository.getBudgetRowsForUser(userId),
+      syncRepository.getBudgetPlanRowsForUser(userId),
+      syncRepository.getBudgetCutoffRowsForUser(userId),
+      syncRepository.getBudgetAllocationRowsForUser(userId),
     ]);
 
     const localWalletMap = new Map(localWalletRows.map((row) => [row.uuid, row]));
     const localExpenseGroupMap = new Map(localExpenseGroupRows.map((row) => [row.uuid, row]));
     const localTransactionMap = new Map(localTransactionRows.map((row) => [row.uuid, row]));
     const localBudgetMap = new Map(localBudgetRows.map((row) => [row.uuid, row]));
+    const localBudgetPlanMap = new Map(localBudgetPlanRows.map((row) => [row.uuid, row]));
+    const localBudgetCutoffMap = new Map(localBudgetCutoffRows.map((row) => [row.uuid, row]));
+    const localBudgetAllocationMap = new Map(localBudgetAllocationRows.map((row) => [row.uuid, row]));
 
     let pulledCount = 0;
 
@@ -506,6 +632,39 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    for (const row of remoteBudgetPlanRows) {
+      const normalized = normalizeBudgetPlanRemoteRow(row);
+      const localRow = normalized ? localBudgetPlanMap.get(normalized.uuid) : undefined;
+      if (normalized && !deletedUuids.has(normalized.uuid)
+        && (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified))) {
+        await syncRepository.upsertBudgetPlanFromRemote(normalized);
+        pulledCount += 1;
+        touchedTables.budgeting = true;
+      }
+    }
+
+    for (const row of remoteBudgetCutoffRows) {
+      const normalized = normalizeBudgetCutoffRemoteRow(row);
+      const localRow = normalized ? localBudgetCutoffMap.get(normalized.uuid) : undefined;
+      if (normalized && !deletedUuids.has(normalized.uuid)
+        && (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified))) {
+        await syncRepository.upsertBudgetCutoffFromRemote(normalized);
+        pulledCount += 1;
+        touchedTables.budgeting = true;
+      }
+    }
+
+    for (const row of remoteBudgetAllocationRows) {
+      const normalized = normalizeBudgetAllocationRemoteRow(row);
+      const localRow = normalized ? localBudgetAllocationMap.get(normalized.uuid) : undefined;
+      if (normalized && !deletedUuids.has(normalized.uuid)
+        && (!localRow || isRemoteNewer(normalized.last_modified, localRow.last_modified))) {
+        await syncRepository.upsertBudgetAllocationFromRemote(normalized);
+        pulledCount += 1;
+        touchedTables.budgeting = true;
+      }
+    }
+
     return {
       pendingCount,
       pulledCount,
@@ -559,6 +718,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         if (summary.touchedTables.budgets) {
           refreshTasks.push(budgets.loadBudgets());
         }
+        if (summary.touchedTables.budgeting) {
+          refreshTasks.push(budgeting.loadPlans());
+        }
 
         if (refreshTasks.length > 0) {
           await Promise.all(refreshTasks);
@@ -595,7 +757,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     } finally {
       isSyncingRef.current = false;
     }
-  }, [budgets, expenseGroups, isConfigured, runSync, transactions, user, wallets]);
+  }, [budgets, budgeting, expenseGroups, isConfigured, runSync, transactions, user, wallets]);
 
   useEffect(() => {
     pendingDisplayNameHydrationRef.current = null;
