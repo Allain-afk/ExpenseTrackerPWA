@@ -22,6 +22,25 @@ function ModalHarness() {
   );
 }
 
+function StackedModalHarness() {
+  const [outerOpen, setOuterOpen] = useState(false);
+  const [innerOpen, setInnerOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setOuterOpen(true)} type="button">Open sheet</button>
+      <Modal onClose={() => setOuterOpen(false)} open={outerOpen} title="Sheet">
+        <button onClick={() => setInnerOpen(true)} type="button">Open confirmation</button>
+      </Modal>
+      {innerOpen ? (
+        <Modal onClose={() => setInnerOpen(false)} open title="Confirmation">
+          <button type="button">Confirm</button>
+        </Modal>
+      ) : null}
+    </>
+  );
+}
+
 describe('Modal keyboard behavior', () => {
   test('traps focus and restores it to the trigger after Escape', async () => {
     const user = userEvent.setup();
@@ -53,5 +72,27 @@ describe('Modal keyboard behavior', () => {
 
     await user.tab();
     expect(closeButton).toHaveFocus();
+  });
+
+  test('only closes the top modal and restores focus through a conditional modal stack', async () => {
+    const user = userEvent.setup();
+    render(<StackedModalHarness />);
+
+    const sheetTrigger = screen.getByRole('button', { name: 'Open sheet' });
+    await user.click(sheetTrigger);
+    const confirmationTrigger = screen.getByRole('button', { name: 'Open confirmation' });
+    await user.click(confirmationTrigger);
+
+    expect(document.body.style.overflow).toBe('hidden');
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Confirmation' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Sheet' })).toBeInTheDocument();
+    expect(confirmationTrigger).toHaveFocus();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(sheetTrigger).toHaveFocus();
+    expect(document.body.style.overflow).toBe('');
   });
 });

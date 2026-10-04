@@ -16,7 +16,8 @@ describe('MonthlySummary', () => {
     expect(screen.getByText('Spent this month')).toBeInTheDocument();
     expect(screen.getByText('₱1,250.00')).toBeInTheDocument();
     expect(screen.getByText('₱250.00 over')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '125');
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '125% used');
     expect(screen.getByText('125% used')).toBeInTheDocument();
   });
 

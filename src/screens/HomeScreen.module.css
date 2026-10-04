@@ -31,6 +31,16 @@
   box-shadow: var(--elev-3);
 }
 
+.walletCardAction {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
 @media (min-width: 720px) {
   .walletCard {
     min-width: 0;
@@ -61,10 +71,11 @@
 
 .walletCardInner {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   min-height: 12rem;
+  pointer-events: none;
 }
 
 .walletTopRow {
@@ -101,6 +112,8 @@
 }
 
 .eyeToggle {
+  position: relative;
+  z-index: 4;
   background: none;
   border: none;
   padding: 0.2rem;
@@ -110,6 +123,7 @@
   min-height: 2rem;
   display: inline-flex;
   align-items: center;
+  pointer-events: auto;
   transition: color 0.15s ease;
 }
 

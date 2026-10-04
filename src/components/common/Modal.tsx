@@ -1,6 +1,10 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { MdClose } from 'react-icons/md';
 
+const openModalStack: symbol[] = [];
+let bodyScrollLockCount = 0;
+let bodyOverflowBeforeLock = '';
+
 interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -23,6 +27,7 @@ export function Modal({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
+  const modalIdRef = useRef(Symbol('modal'));
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -51,14 +56,30 @@ export function Modal({
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
+    const modalId = modalIdRef.current;
+    openModalStack.push(modalId);
+    if (bodyScrollLockCount === 0) {
+      bodyOverflowBeforeLock = document.body.style.overflow;
+    }
+    bodyScrollLockCount += 1;
     document.body.style.overflow = 'hidden';
     const currentFocus = document.activeElement;
+    if (
+      returnFocusRef.current === null
+      && currentFocus instanceof HTMLElement
+      && !panelRef.current?.contains(currentFocus)
+    ) {
+      returnFocusRef.current = currentFocus;
+    }
     if (!(currentFocus instanceof HTMLElement && panelRef.current?.contains(currentFocus))) {
       closeButtonRef.current?.focus();
     }
 
     const handleEscape = (event: KeyboardEvent) => {
+      if (openModalStack.at(-1) !== modalId) {
+        return;
+      }
+
       if (event.key === 'Escape') {
         onCloseRef.current();
         return;
@@ -93,10 +114,21 @@ export function Modal({
     window.addEventListener('keydown', handleEscape);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
-      returnFocusRef.current?.focus();
+      const stackIndex = openModalStack.lastIndexOf(modalId);
+      if (stackIndex >= 0) {
+        openModalStack.splice(stackIndex, 1);
+      }
+      bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
+      document.body.style.overflow = bodyScrollLockCount === 0 ? bodyOverflowBeforeLock : 'hidden';
+
+      const returnFocusTarget = returnFocusRef.current;
       returnFocusRef.current = null;
+      queueMicrotask(() => {
+        if (returnFocusTarget?.isConnected) {
+          returnFocusTarget.focus();
+        }
+      });
     };
   }, [open]);
 

@@ -79,7 +79,14 @@ describe('HomeScreen daily hierarchy', () => {
     render(<MemoryRouter><HomeScreen currencySymbol="₱" /></MemoryRouter>);
 
     expect(screen.getByText('Daily wallet')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hide All wallets balance' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hide Daily wallet balance' })).toBeInTheDocument();
+    const mainBalanceToggle = screen.getByRole('button', { name: 'Hide All wallets balance' });
+    const walletBalanceToggle = screen.getByRole('button', { name: 'Hide Daily wallet balance' });
+    expect(mainBalanceToggle).toBeInTheDocument();
+    expect(walletBalanceToggle).toBeInTheDocument();
+    expect(mainBalanceToggle.parentElement?.closest('button, [role="button"]')).toBeNull();
+    expect(walletBalanceToggle.parentElement?.closest('button, [role="button"]')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Manage All wallets' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Manage Daily wallet' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Refresh home data' })).toBeInTheDocument();
   });
 });

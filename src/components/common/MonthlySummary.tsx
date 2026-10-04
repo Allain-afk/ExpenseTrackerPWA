@@ -9,6 +9,7 @@ interface MonthlySummaryProps {
 
 export function MonthlySummary({ currencySymbol, value }: MonthlySummaryProps) {
   const roundedPercentage = Math.round(value.percentage);
+  const progressPercentage = Math.min(Math.max(roundedPercentage, 0), 100);
   const remainingLabel = value.remaining < 0
     ? `${formatMoney(Math.abs(value.remaining), currencySymbol)} over`
     : formatMoney(value.remaining, currencySymbol);
@@ -38,7 +39,8 @@ export function MonthlySummary({ currencySymbol, value }: MonthlySummaryProps) {
           aria-label={`${roundedPercentage}% of the monthly budget used`}
           aria-valuemax={100}
           aria-valuemin={0}
-          aria-valuenow={roundedPercentage}
+          aria-valuenow={progressPercentage}
+          aria-valuetext={`${roundedPercentage}% used`}
           className={styles.progress}
           role="progressbar"
         >

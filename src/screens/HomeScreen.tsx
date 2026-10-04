@@ -127,7 +127,7 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
           </div>
           <div className="inline-actions" style={{ gap: '0.55rem' }}>
             <SyncStatusIcon />
-            <button className="overlay-close" onClick={() => void refreshHome()} type="button">
+            <button aria-label="Refresh home data" className="overlay-close" onClick={() => void refreshHome()} type="button">
               <MdRefresh size={20} />
             </button>
           </div>
@@ -137,17 +137,14 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
           {!settings.mainWalletHidden ? (
             <div
               className={`${styles.walletCard} app-card`}
-              onClick={openMainWalletEditor}
-              onKeyDown={(event) => {
-                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                  event.preventDefault();
-                  openMainWalletEditor();
-                }
-              }}
-              role="button"
               style={{ background: gradientForColor(settings.mainWalletColor), border: 'none' }}
-              tabIndex={0}
             >
+              <button
+                aria-label={`Manage ${settings.mainWalletName}`}
+                className={styles.walletCardAction}
+                onClick={openMainWalletEditor}
+                type="button"
+              />
               <div className={styles.walletCardInner}>
                 <div className={styles.walletTopRow}>
                   <span className={styles.walletBadge}>
@@ -188,17 +185,14 @@ export function HomeScreen({ currencySymbol }: HomeScreenProps) {
             <div
               className={`${styles.walletCard} app-card`}
               key={wallet.id}
-              onClick={() => setSelectedWalletId(wallet.id ?? null)}
-              onKeyDown={(event) => {
-                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                  event.preventDefault();
-                  setSelectedWalletId(wallet.id ?? null);
-                }
-              }}
-              role="button"
               style={{ background: gradientForColor(wallet.colorValue), border: 'none' }}
-              tabIndex={0}
             >
+              <button
+                aria-label={`Manage ${wallet.name}`}
+                className={styles.walletCardAction}
+                onClick={() => setSelectedWalletId(wallet.id ?? null)}
+                type="button"
+              />
               <div className={styles.walletCardInner}>
                 <div className={styles.walletTopRow}>
                   <span className={styles.walletBadge}>
