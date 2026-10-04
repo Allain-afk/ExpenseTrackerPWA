@@ -439,13 +439,9 @@ export function SettingsScreen() {
             // Do not block sign-in success if profile metadata sync fails.
           });
         }
-        showSuccessToast('Signed in', 'Cloud backup is now available. Restarting app...');
+        showSuccessToast('Signed in', 'Cloud backup is now available.');
         setAuthPassword('');
         setIsAuthOpen(false);
-        window.setTimeout(() => {
-          window.location.replace('/');
-        }, 120);
-        return;
       } else {
         await auth.signUpWithPassword(authEmail.trim(), authPassword, onboardingName || undefined);
         showSuccessToast('Account created', 'Check your inbox if email confirmation is required.');
