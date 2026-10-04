@@ -58,7 +58,7 @@ function BootstrapBoundary({
   children: ReactNode;
   requireSetup?: boolean;
 }) {
-  const { bootstrap, bootstrapError, hasBootstrapped, isBootstrapping } = useAppBootstrap(true);
+  const { bootstrap, bootstrapError, hasBootstrapped, isBootstrapping } = useAppBootstrap();
   const { isSetupComplete } = useSettings();
   const bypassSetupOnce = typeof window !== 'undefined'
     && window.sessionStorage.getItem('bypass_setup_once') === 'true';

@@ -6,7 +6,7 @@ import styles from './SplashScreen.module.css';
 
 export function SplashScreen() {
   const navigate = useNavigate();
-  const { bootstrap, bootstrapError, hasBootstrapped, isBootstrapping } = useAppBootstrap(true);
+  const { bootstrap, bootstrapError, hasBootstrapped, isBootstrapping } = useAppBootstrap();
   const { isSetupComplete } = useSettings();
 
   const navigateAfterSplash = useEffectEvent(() => {

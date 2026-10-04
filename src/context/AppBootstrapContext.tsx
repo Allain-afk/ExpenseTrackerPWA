@@ -1,7 +1,9 @@
 import {
+  useCallback,
   createContext,
-  startTransition,
   useContext,
+  useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -51,18 +53,44 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
   const budgetsContext = useContext(BudgetsContext);
   const budgetingContext = useContext(BudgetingContext);
   const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
+  const hasBootstrappedRef = useRef(false);
+  const bootstrapSourcesRef = useRef({
+    settings: settingsContext,
+    transactions: transactionsContext,
+    wallets: walletsContext,
+    expenseGroups: expenseGroupsContext,
+    budgets: budgetsContext,
+    budgeting: budgetingContext,
+  });
+  useEffect(() => {
+    bootstrapSourcesRef.current = {
+      settings: settingsContext,
+      transactions: transactionsContext,
+      wallets: walletsContext,
+      expenseGroups: expenseGroupsContext,
+      budgets: budgetsContext,
+      budgeting: budgetingContext,
+    };
+  }, [
+    budgetingContext,
+    budgetsContext,
+    expenseGroupsContext,
+    settingsContext,
+    transactionsContext,
+    walletsContext,
+  ]);
 
   const [isBootstrapping, setIsBootstrapping] = useState(false);
   const [hasBootstrapped, setHasBootstrapped] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
 
-  async function runBootstrap(force = false): Promise<void> {
-    if (hasBootstrapped && !force) {
-      return;
+  const runBootstrap = useCallback((force = false): Promise<void> => {
+    if (bootstrapPromiseRef.current) {
+      return bootstrapPromiseRef.current;
     }
 
-    if (bootstrapPromiseRef.current && !force) {
-      return bootstrapPromiseRef.current;
+    if (hasBootstrappedRef.current && !force) {
+      return Promise.resolve();
     }
 
     const work = (async () => {
@@ -71,13 +99,21 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
 
       try {
         await ensureDatabaseReady();
+        const {
+          settings,
+          transactions,
+          wallets,
+          expenseGroups,
+          budgets,
+          budgeting,
+        } = bootstrapSourcesRef.current;
         const bootstrapTasks: Array<Promise<unknown> | undefined> = [
-          force || !settingsContext?.isLoaded ? settingsContext?.loadSettings() : undefined,
-          force || !transactionsContext?.isLoaded ? transactionsContext?.loadTransactions() : undefined,
-          force || !walletsContext?.isLoaded ? walletsContext?.loadWallets() : undefined,
-          force || !expenseGroupsContext?.isLoaded ? expenseGroupsContext?.loadExpenseGroups() : undefined,
-          force || !budgetsContext?.isLoaded ? budgetsContext?.loadBudgets() : undefined,
-          force || !budgetingContext?.isLoaded ? budgetingContext?.loadPlans() : undefined,
+          force || !settings?.isLoaded ? settings?.loadSettings() : undefined,
+          force || !transactions?.isLoaded ? transactions?.loadTransactions() : undefined,
+          force || !wallets?.isLoaded ? wallets?.loadWallets() : undefined,
+          force || !expenseGroups?.isLoaded ? expenseGroups?.loadExpenseGroups() : undefined,
+          force || !budgets?.isLoaded ? budgets?.loadBudgets() : undefined,
+          force || !budgeting?.isLoaded ? budgeting?.loadPlans() : undefined,
         ];
 
         await withTimeout(
@@ -86,9 +122,8 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
           'App bootstrap',
         );
 
-        startTransition(() => {
-          setHasBootstrapped(true);
-        });
+        hasBootstrappedRef.current = true;
+        setHasBootstrapped(true);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to initialize the app.';
         setBootstrapError(message);
@@ -101,16 +136,18 @@ export function AppBootstrapProvider({ children }: { children: ReactNode }) {
 
     bootstrapPromiseRef.current = work;
     return work;
-  }
+  }, []);
+
+  const value = useMemo<AppBootstrapContextValue>(() => ({
+    isBootstrapping,
+    hasBootstrapped,
+    bootstrapError,
+    bootstrap: runBootstrap,
+  }), [bootstrapError, hasBootstrapped, isBootstrapping, runBootstrap]);
 
   return (
     <AppBootstrapContext.Provider
-      value={{
-        isBootstrapping,
-        hasBootstrapped,
-        bootstrapError,
-        bootstrap: runBootstrap,
-      }}
+      value={value}
     >
       {children}
     </AppBootstrapContext.Provider>

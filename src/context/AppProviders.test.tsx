@@ -1,7 +1,11 @@
 import { render, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationCoordinator } from './AppProviders';
+import { BootstrapCoordinator, NotificationCoordinator } from './AppProviders';
+import {
+  AppBootstrapContext,
+  type AppBootstrapContextValue,
+} from './AppBootstrapContext';
 import { SettingsContext, type SettingsContextValue } from './SettingsContext';
 import {
   TransactionsContext,
@@ -61,6 +65,21 @@ function renderCoordinator({
   render(<NotificationCoordinator />, { wrapper: Providers });
 }
 
+function renderBootstrapCoordinator(bootstrap: () => Promise<void>, isBootstrapping: boolean) {
+  const value: AppBootstrapContextValue = {
+    bootstrap,
+    bootstrapError: null,
+    hasBootstrapped: false,
+    isBootstrapping,
+  };
+
+  return render(
+    <AppBootstrapContext.Provider value={value}>
+      <BootstrapCoordinator />
+    </AppBootstrapContext.Provider>,
+  );
+}
+
 describe('NotificationCoordinator', () => {
   beforeEach(() => {
     mockedMaybeShowLowBalanceNotification.mockReset();
@@ -94,5 +113,29 @@ describe('NotificationCoordinator', () => {
         threshold: 1_000,
       }),
     );
+  });
+});
+
+describe('BootstrapCoordinator', () => {
+  it('starts bootstrap once across context rerenders', async () => {
+    const bootstrap = vi.fn(async () => undefined);
+    const view = renderBootstrapCoordinator(bootstrap, false);
+
+    await waitFor(() => expect(bootstrap).toHaveBeenCalledTimes(1));
+
+    view.rerender(
+      <AppBootstrapContext.Provider
+        value={{
+          bootstrap,
+          bootstrapError: null,
+          hasBootstrapped: false,
+          isBootstrapping: true,
+        }}
+      >
+        <BootstrapCoordinator />
+      </AppBootstrapContext.Provider>,
+    );
+
+    expect(bootstrap).toHaveBeenCalledTimes(1);
   });
 });

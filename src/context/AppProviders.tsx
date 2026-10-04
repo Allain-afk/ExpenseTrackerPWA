@@ -1,4 +1,4 @@
-import { useContext, useEffect, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, type ReactNode } from 'react';
 import { SettingsProvider, SettingsContext } from './SettingsContext';
 import { TransactionsProvider, TransactionsContext } from './TransactionsContext';
 import { WalletsProvider } from './WalletsContext';
@@ -11,6 +11,23 @@ import { SyncProvider } from './SyncContext';
 import { maybeShowLowBalanceNotification } from '../lib/utils/notifications';
 import { defaultThemeId } from '../lib/constants/themes';
 import { applyThemeToDocument } from '../lib/utils/theme';
+import { useAppBootstrap } from '../hooks/useAppBootstrap';
+
+export function BootstrapCoordinator() {
+  const { bootstrap } = useAppBootstrap();
+  const hasStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasStartedRef.current) {
+      return;
+    }
+
+    hasStartedRef.current = true;
+    void bootstrap().catch(() => undefined);
+  }, [bootstrap]);
+
+  return null;
+}
 
 export function NotificationCoordinator() {
   const settingsContext = useContext(SettingsContext);
@@ -79,6 +96,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
               <BudgetsProvider>
                 <BudgetingProvider>
                   <AppBootstrapProvider>
+                    <BootstrapCoordinator />
                     <SyncProvider>
                       <NotificationCoordinator />
                       {children}
