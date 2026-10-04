@@ -1,29 +1,356 @@
-.page { gap: 1rem; }
-.selectorCard, .formCard, .summaryCard, .cutoffCard { padding: 1.1rem; }
-.selectorCard { display: grid; gap: .65rem; }
-.planActions, .inline-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
-.formHeader, .cutoffHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.formHeader h2, .summaryCard h2, .cutoffHeader h2, .formCard h2 { margin: .15rem 0 0; }
-.formGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: .9rem; }
-.disclaimer { padding: .75rem; border-radius: .8rem; background: var(--color-primary-soft); color: var(--color-text-secondary); font-size: .85rem; }
-.summaryCard { display: grid; grid-template-columns: auto 1fr; gap: .8rem; align-items: start; background: linear-gradient(135deg, var(--color-primary), #0f766e); color: white; }
-.summaryCard .muted { color: rgba(255,255,255,.78); }
-.summaryIcon { width: 2.8rem; height: 2.8rem; border-radius: 1rem; display: grid; place-items: center; background: rgba(255,255,255,.18); }
-.metrics { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-top: .7rem; }
-.metrics div { padding: .7rem; border-radius: .8rem; background: rgba(255,255,255,.14); }
-.metrics span, .metrics strong { display: block; }
-.metrics span { font-size: .75rem; color: rgba(255,255,255,.75); }
-.metrics strong { margin-top: .25rem; font-size: 1rem; }
-.over { color: #fecaca; }
-.cutoffHeader { align-items: center; }
-.cutoffHeader > strong { margin-left: auto; }
-.iconButton { width: 2.5rem; height: 2.5rem; border: 1px solid var(--color-border); border-radius: .75rem; display: inline-grid; place-items: center; background: transparent; color: var(--color-text-secondary); }
-.allocationList { display: grid; gap: .55rem; margin: 1rem 0; }
-.allocationRow { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: .7rem; padding: .75rem; border: 1px solid var(--color-border); border-radius: .75rem; }
-.allocationRow strong, .allocationRow span { display: block; }
-.allocationRow span { margin-top: .2rem; color: var(--color-text-secondary); font-size: .8rem; }
-.allocationForm { display: grid; grid-template-columns: 1.3fr .8fr 1fr auto; gap: .6rem; }
-.emptyState { display: grid; justify-items: center; gap: .7rem; padding: 3rem 1.25rem; text-align: center; color: var(--color-text-secondary); }
-.emptyState h2, .emptyState p { margin: 0; }
-.backLink { align-self: center; color: var(--color-primary); font-weight: 700; }
-@media (max-width: 720px) { .formGrid, .allocationForm { grid-template-columns: 1fr; } .metrics { gap: .35rem; } .metrics div { padding: .55rem; } .metrics strong { font-size: .85rem; } .allocationRow { grid-template-columns: 1fr auto auto; } }
+.page {
+  gap: 1rem;
+}
+
+.selectorCard,
+.formCard,
+.summaryCard,
+.cutoffCard {
+  padding: 1.25rem;
+}
+
+.selectorCard {
+  display: grid;
+  gap: 1rem;
+  background: var(--color-surface-elevated);
+}
+
+.selectorHeader,
+.sectionHeading,
+.formHeader,
+.cutoffHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.selectorHeader p,
+.sectionHeading p {
+  margin-bottom: 0.35rem;
+}
+
+.selectorLabel {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.planCount,
+.sectionHint {
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.planCount {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  white-space: nowrap;
+}
+
+.planActions,
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.formHeader h2,
+.summaryCard h2,
+.cutoffHeader h2,
+.formCard h2,
+.sectionHeading h2 {
+  margin: 0;
+  letter-spacing: -0.045em;
+}
+
+.formHeader h2,
+.formCard h2,
+.sectionHeading h2 {
+  font-size: 1.25rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.formCard {
+  display: grid;
+  gap: 1rem;
+  background: var(--color-surface);
+}
+
+.disclaimer {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 1rem;
+  background: var(--color-primary-soft);
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+}
+
+.summaryCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem 1rem;
+  align-items: start;
+  overflow: hidden;
+  border: 0;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(96, 165, 250, 0.42), transparent 40%),
+    linear-gradient(135deg, #1e3a8a 0%, #2563eb 58%, #0f766e 130%);
+  color: white;
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.22);
+}
+
+.summaryCard .eyebrow,
+.summaryCard .muted {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.summaryIcon {
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 1rem;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.summaryCopy {
+  min-width: 0;
+}
+
+.summaryCard h2 {
+  margin-top: 0.18rem;
+  font-size: 1.4rem;
+  overflow-wrap: anywhere;
+}
+
+.summaryCard .muted {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+}
+
+.metrics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.metrics div {
+  min-width: 0;
+  padding: 0.8rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.95rem;
+  background: rgba(15, 23, 42, 0.16);
+}
+
+.metrics span,
+.metrics strong {
+  display: block;
+}
+
+.metrics span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.metrics strong {
+  margin-top: 0.3rem;
+  font-size: 0.98rem;
+  overflow-wrap: anywhere;
+}
+
+.over {
+  color: #fecaca;
+}
+
+.progressTrack {
+  grid-column: 1 / -1;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+  transition: width var(--motion-base) var(--ease-out);
+}
+
+.sectionHint {
+  max-width: 11rem;
+  text-align: right;
+}
+
+.cutoffHeader {
+  align-items: center;
+}
+
+.cutoffHeader > strong {
+  margin-left: auto;
+  font-size: 1.05rem;
+}
+
+.iconButton {
+  flex: 0 0 auto;
+  width: 2.7rem;
+  height: 2.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  display: inline-grid;
+  place-items: center;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-fast) var(--ease-out), color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+}
+
+.iconButton:hover {
+  color: var(--color-expense);
+  border-color: rgba(244, 63, 94, 0.35);
+  transform: translateY(-1px);
+}
+
+.allocationList {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.allocationRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-surface-soft);
+}
+
+.allocationRow strong,
+.allocationRow span {
+  display: block;
+}
+
+.allocationRow strong {
+  overflow-wrap: anywhere;
+}
+
+.allocationRow span {
+  margin-top: 0.2rem;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+
+.allocationForm {
+  display: grid;
+  grid-template-columns: 1.3fr 0.8fr 1fr auto;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.emptyState {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.emptyState h2,
+.emptyState p {
+  margin: 0;
+}
+
+.emptyState h2 {
+  color: var(--color-text);
+}
+
+.emptyState svg {
+  width: 3.5rem;
+  height: 3.5rem;
+  padding: 0.75rem;
+  border-radius: 1.2rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.backLink {
+  align-self: center;
+  color: var(--color-primary);
+  font-weight: 700;
+  padding: 0.5rem;
+}
+
+.selectorCard :is(select, input),
+.formCard :is(select, input),
+.allocationForm :is(select, input) {
+  min-height: 3rem;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-inline: 0.8rem;
+  }
+
+  .selectorCard,
+  .formCard,
+  .summaryCard,
+  .cutoffCard {
+    padding: 1rem;
+    border-radius: 1.25rem;
+  }
+
+  .formGrid,
+  .allocationForm {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics {
+    gap: 0.4rem;
+  }
+
+  .metrics div {
+    padding: 0.65rem 0.55rem;
+  }
+
+  .metrics strong {
+    font-size: 0.82rem;
+  }
+
+  .sectionHeading {
+    align-items: flex-start;
+  }
+
+  .sectionHint {
+    font-size: 0.72rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iconButton,
+  .progressTrack span {
+    transition: none;
+  }
+}

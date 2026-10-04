@@ -113,7 +113,13 @@ export function BudgetingScreen() {
 
       {budgeting.plans.length ? (
         <section className={`app-card ${styles.selectorCard}`}>
-          <label className="field-label" htmlFor="budget-plan">Saved budget plan</label>
+          <div className={styles.selectorHeader}>
+            <div>
+              <p className="eyebrow">Your plans</p>
+              <label className={styles.selectorLabel} htmlFor="budget-plan">Active budget plan</label>
+            </div>
+            <span className={styles.planCount}>{budgeting.plans.length} saved</span>
+          </div>
           <select className="field-input" id="budget-plan" onChange={(event) => budgeting.selectPlan(event.target.value)} value={budgeting.selectedPlanId ?? ''}>
             {budgeting.plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.title}</option>)}
           </select>
@@ -141,12 +147,13 @@ export function BudgetingScreen() {
         <>
           <section className={`app-card ${styles.summaryCard}`}>
             <div className={styles.summaryIcon}><MdSavings size={24} /></div>
-            <div><p className="eyebrow">Planning summary</p><h2>{selectedPlan.title}</h2><p className="muted">{formatDateForInput(selectedPlan.periodStart)} to {formatDateForInput(selectedPlan.periodEnd)}</p></div>
+            <div className={styles.summaryCopy}><p className="eyebrow">Planning summary</p><h2>{selectedPlan.title}</h2><p className="muted">{formatDateForInput(selectedPlan.periodStart)} to {formatDateForInput(selectedPlan.periodEnd)}</p></div>
             <div className={styles.metrics}><div><span>Estimated</span><strong>{formatMoney(totals.estimated, currencySymbol)}</strong></div><div><span>Allocated</span><strong>{formatMoney(totals.allocated, currencySymbol)}</strong></div><div><span>Remaining</span><strong className={totals.remaining < 0 ? styles.over : ''}>{formatMoney(totals.remaining, currencySymbol)}</strong></div></div>
+            <div className={styles.progressTrack} aria-label={`${totals.estimated > 0 ? Math.min(100, Math.round((totals.allocated / totals.estimated) * 100)) : 0}% of estimated budget allocated`} role="progressbar" aria-valuemax={100} aria-valuemin={0} aria-valuenow={totals.estimated > 0 ? Math.min(100, Math.round((totals.allocated / totals.estimated) * 100)) : 0}><span style={{ width: `${totals.estimated > 0 ? Math.min(100, Math.max(0, (totals.allocated / totals.estimated) * 100)) : 0}%` }} /></div>
           </section>
 
           <section className={`app-card ${styles.formCard}`}>
-            <h2>Add cut-off</h2>
+            <div className={styles.sectionHeading}><div><p className="eyebrow">Plan structure</p><h2>Add cut-off</h2></div><span className={styles.sectionHint}>Split your plan into pay periods</span></div>
             <form className={styles.formGrid} onSubmit={(event) => void addCutoff(event)}>
               <input aria-label="Cut-off label" className="field-input" onChange={(event) => setCutoffDraft({ ...cutoffDraft, label: event.target.value })} placeholder="1st Cut-Off" value={cutoffDraft.label} />
               <input aria-label="Cut-off date" className="field-input" onChange={(event) => setCutoffDraft({ ...cutoffDraft, date: event.target.value })} type="date" value={cutoffDraft.date} />
